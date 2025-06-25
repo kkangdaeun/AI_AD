@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KBS 스타일 플레이어 (고급 UI)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap');
+
+    body {
+      margin: 0;
+      font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
+      background: #121212;
+      color: #eee;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .header {
+      padding: 14px 24px;
+      background-color: rgba(20, 20, 20, 0.9);
+      border-bottom: 1px solid #444;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.5);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .header h1 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 1.8rem;
+      letter-spacing: 0.05em;
+      color: #ffcc00;
+    }
+    .channel-info {
+      font-size: 1rem;
+      margin-top: 4px; /* 기존 h1 아래 padding 조절 */
+      color: #aaa;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .channel-info a, .header-right button {
+        background: none;
+        border: none;
+        color: #ffcc00;
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 0;
+        margin: 0;
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+    .channel-info a:hover, .header-right button:hover {
+        color: #fff100;
+    }
+    .header-right .search-box {
+        display: flex;
+        align-items: center;
+        background-color: #333;
+        border-radius: 5px;
+        padding: 5px 10px;
+    }
+    .header-right .search-box input {
+        background: none;
+        border: none;
+        color: #eee;
+        outline: none;
+        padding: 2px 5px;
+        width: 150px;
+        font-size: 0.95rem;
+    }
+    .header-right .search-box input::placeholder {
+        color: #bbb;
+    }
+    .header-right .search-box button {
+        color: #ffcc00;
+        padding: 0 5px;
+    }
+    .header-right .channel-select-wrapper {
+        position: relative;
+    }
+    .header-right .channel-select {
+        background-color: #222;
+        color: #ffcc00;
+        border: 1px solid #444;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.25s ease, border-color 0.25s ease;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        padding-right: 30px; /* 화살표 공간 */
+        background-image: url('data:image/svg+xml;utf8,<svg fill="%23ffcc00" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        background-size: 18px;
+    }
+    .header-right .channel-select:hover {
+        background-color: #ffcc00;
+        color: #111;
+        border-color: #ffcc00;
+        box-shadow: 0 0 10px #ffcc00aa;
+        background-image: url('data:image/svg+xml;utf8,<svg fill="%23111" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+    }
+    .header-right .channel-select option {
+        background-color: #222;
+        color: #eee;
+    }
+
+
+    .main-content {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 0;
+    }
+
+    .player-container {
+      max-width: 1200px;
+      width: 90vw;
+      margin: 0 auto;
+      background-color: #000;
+      position: relative;
+      border-radius: 12px;
+      box-shadow: 0 0 24px rgba(255, 204, 0, 0.6);
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      cursor: none;
+      transition: all 0.3s ease;
+    }
+
+    /* 미니 플레이어 스타일 */
+    .player-container.mini-player {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 320px;
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(255, 204, 0, 0.8), 0 0 30px rgba(0,0,0,0.8);
+      z-index: 100;
+      cursor: default;
+    }
+    .player-container.mini-player .controls {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+    .player-container.mini-player .overlay {
+        display: none !important;
+    }
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: black;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      background: black;
+    }
+
+    /* 로딩 스피너 */
+    .spinner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 48px;
+      height: 48px;
+      margin: -24px 0 0 -24px;
+      border: 5px solid rgba(255, 204, 0, 0.3);
+      border-top-color: #ffcc00;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      z-index: 20;
+      display: none;
+      pointer-events: none;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+
+    .loading-text {
+        position: absolute;
+        top: calc(50% + 30px);
+        left: 50%;
+        transform: translateX(-50%);
+        color: #ffcc00;
+        font-size: 1.1rem;
+        font-weight: 600;
+        z-index: 20;
+        display: none;
+        pointer-events: none;
+        white-space: nowrap;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      z-index: 15;
+    }
+
+    .overlay-btn {
+      background: rgba(255, 204, 0, 0.85);
+      border: none;
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      cursor: pointer;
+      box-shadow: 0 0 16px rgba(255, 204, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.3s ease;
+    }
+    .overlay-btn:hover {
+      background: #ffcc00;
+      box-shadow: 0 0 28px #ffcc00;
+    }
+    .overlay-btn svg {
+      width: 40px;
+      height: 40px;
+      fill: #111;
+      pointer-events: none;
+    }
+
+    .controls {
+      padding: 14px 20px;
+      background-color: #181818;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      user-select: none;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+      pointer-events: auto;
+    }
+    .controls.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #progressBar {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #444;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      position: relative;
+    }
+    #progressBar::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffcc00;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.3s ease;
+      margin-top: -4px;
+      box-shadow: 0 0 8px #ffcc00;
+    }
+    #progressBar::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffcc00;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 8px #ffcc00;
+    }
+    #progressBar:hover {
+      background: #666;
+    }
+    #progressBar:focus::-webkit-slider-thumb {
+      background: #fff100;
+      box-shadow: 0 0 12px #fff100;
+    }
+    #progressBar:disabled {
+        pointer-events: none;
+        opacity: 0.7;
+    }
+    #progressBar:disabled::-webkit-slider-thumb {
+        background: #888;
+        box-shadow: none;
+    }
+
+    /* 북마크 표시 */
+    .bookmark-dot {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        background-color: #00bcd4;
+        border-radius: 50%;
+        top: -1px;
+        transform: translateX(-50%);
+        pointer-events: none;
+        z-index: 5;
+    }
+
+    /* 챕터 마커 */
+    .chapter-marker {
+        position: absolute;
+        width: 4px;
+        height: 10px;
+        background-color: #f44336; /* 챕터 색상 */
+        top: -2px; /* 진행바 위로 약간 튀어나오게 */
+        transform: translateX(-50%);
+        pointer-events: all; /* 클릭 가능하게 */
+        z-index: 6;
+        cursor: pointer;
+        border-radius: 2px;
+        box-shadow: 0 0 5px rgba(244, 67, 54, 0.7);
+        transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+    .chapter-marker:hover {
+        background-color: #ff0000;
+        transform: translateX(-50%) scale(1.2);
+    }
+    .chapter-marker::before {
+        content: attr(data-title);
+        position: absolute;
+        top: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+    }
+    .chapter-marker:hover::before {
+        opacity: 1;
+    }
+
+
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    input[type="range"] {
+      width: 130px;
+      cursor: pointer;
+      background: transparent;
+    }
+
+    select, button {
+      background-color: #222;
+      color: #ffcc00;
+      border: 1px solid #444;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.25s ease, border-color 0.25s ease;
+      min-width: 80px;
+      text-align: center;
+      user-select: none;
+    }
+    select {
+      padding-right: 10px;
+    }
+    button:hover, select:hover {
+      background-color: #ffcc00;
+      color: #111;
+      border-color: #ffcc00;
+      box-shadow: 0 0 10px #ffcc00aa;
+    }
+    select:disabled, button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    select:disabled:hover, button:disabled:hover {
+        background-color: #222;
+        color: #ffcc00;
+        border-color: #444;
+    }
+
+    /* 재생시간 표시 */
+    .time-display {
+      color: #aaa;
+      font-size: 0.95rem;
+      user-select: none;
+      min-width: 110px;
+      text-align: right;
+      font-feature-settings: "tnum";
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 볼륨/속도 피드백 박스 */
+    .feedback-box {
+      position: absolute;
+      bottom: 110px;
+      right: 20px;
+      background: rgba(255, 204, 0, 0.9);
+      color: #111;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 8px;
+      box-shadow: 0 0 12px #ffcc00cc;
+      font-size: 1.1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 25;
+      user-select: none;
+      font-family: monospace;
+    }
+
+    /* 광고 시간 표시 */
+    .ad-time-display {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #ffcc00;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 0.9rem;
+        z-index: 10;
+        display: none;
+    }
+
+    /* 챕터 목록 팝업 */
+    .chapter-list-popup {
+        position: absolute;
+        bottom: 100%; /* 컨트롤 바 위로 */
+        right: 0;
+        background-color: rgba(34, 34, 34, 0.95);
+        border: 1px solid #444;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        padding: 10px 0;
+        margin-bottom: 10px;
+        width: 250px;
+        max-height: 250px;
+        overflow-y: auto;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(10px);
+        transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+        z-index: 30; /* 피드백 박스보다 위 */
+    }
+    .chapter-list-popup.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    .chapter-list-popup ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .chapter-list-popup li button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: none;
+        border: none;
+        color: #eee;
+        padding: 8px 15px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: auto;
+    }
+    .chapter-list-popup li button span {
+        color: #aaa;
+        font-size: 0.8rem;
+        margin-right: 5px;
+    }
+    .chapter-list-popup li button:hover {
+        background-color: #ffcc00;
+        color: #111;
+        border-color: transparent;
+        box-shadow: none;
+    }
+    .chapter-list-popup li button:hover span {
+        color: #444;
+    }
+
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .header-left, .header-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .header-left {
+        flex-wrap: wrap;
+      }
+      .header-right {
+        flex-wrap: wrap;
+        margin-top: 5px;
+      }
+      .header-right .search-box {
+          flex-grow: 1;
+          margin-right: 5px;
+      }
+      .header-right .search-box input {
+          width: auto;
+          flex-grow: 1;
+      }
+      .buttons {
+        justify-content: center;
+        gap: 10px;
+      }
+      input[type="range"] {
+        width: 100px;
+      }
+      button, select {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+        min-width: 70px;
+      }
+      .time-display {
+        min-width: 90px;
+        font-size: 0.85rem;
+      }
+      .player-container.mini-player {
+        width: 250px;
+        bottom: 10px;
+        right: 10px;
+      }
+      .chapter-list-popup {
+          width: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <h1>KBS 온에어</h1>
+      <div class="channel-info" id="channelInfo">
+        <span id="currentChannelName">KBS1</span>
+        <a href="https://kbs.co.kr/schedule" target="_blank" title="편성표 바로가기">
+          <svg fill="#ffcc00" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+            <path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/>
+            <path d="M0 0h24v24H0z" fill="none"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+    <div class="header-right">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="콘텐츠 검색" aria-label="콘텐츠 검색">
+            <button id="searchBtn" aria-label="검색">
+                <svg fill="#ffcc00" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 10.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    <path d="M0 0h24v24H0z" fill="none"/>
+                </svg>
+            </button>
+        </div>
+        <div class="channel-select-wrapper">
+            <select id="channelSelect" aria-label="채널 변경">
+                <option value="KBS1">KBS1</option>
+                <option value="KBS2">KBS2</option>
+                <option value="KBSNEWS">KBS NEWS</option>
+                <option value="KBSSPORTS">KBS SPORTS</option>
+            </select>
+        </div>
+    </div>
+  </header>
+
+  <div class="main-content">
+    <div class="player-container" id="playerContainer">
+      <div class="video-wrapper">
+        <video id="video" playsinline></video>
+        <div class="spinner" id="spinner"></div>
+        <div class="loading-text" id="loadingText">영상 준비 중...</div>
+        <div id="overlay" class="overlay" aria-label="재생/일시정지 버튼">
+          <button id="playPauseBtn" class="overlay-btn" aria-label="재생/일시정지">
+            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+              <polygon points="16,12 52,32 16,52" />
+            </svg>
+          </button>
+        </div>
+        <div class="ad-time-display" id="adTimeDisplay"></div>
+      </div>
+
+      <div class="controls" id="controls">
+        <div style="position: relative;">
+          <input type="range" id="progressBar" value="0" aria-label="재생 위치 조절" />
+        </div>
+        <div class="buttons">
+          <input type="range" id="volumeControl" min="0" max="1" step="0.01" value="1" aria-label="볼륨 조절" />
+          <select id="speedControl" aria-label="재생 속도">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+          </select>
+          <button id="aspectRatioBtn" aria-label="화면 비율 조절">🔲 화면비</button>
+          <button id="pipBtn" aria-label="PIP 모드">📺 PIP</button>
+          <button id="miniPlayerBtn" aria-label="미니 플레이어 모드">🔽 미니</button>
+          <button id="fullscreenBtn" aria-label="전체화면">⛶ 전체화면</button>
+          <button id="bookmarkBtn" aria-label="북마크 추가">⭐ 북마크</button>
+          <button id="chaptersBtn" aria-label="챕터 목록">📖 챕터</button>
+          <button id="skipAdBtn" aria-label="광고 스킵" style="display:none;">⏭ 광고 스킵</button>
+          <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
+        </div>
+      </div>
+
+      <div class="feedback-box" id="feedbackBox" aria-live="polite" aria-atomic="true"></div>
+      <div class="chapter-list-popup" id="chapterListPopup">
+          <ul id="chapterListUl"></ul>
+      </div>
+    </div>
+  </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const video = document.getElementById('video');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const progressBar = document.getElementById('progressBar');
+    const volumeControl = document.getElementById('volumeControl');
+    const speedControl = document.getElementById('speedControl');
+    const aspectRatioBtn = document.getElementById('aspectRatioBtn');
+    const pipBtn = document.getElementById('pipBtn');
+    const miniPlayerBtn = document.getElementById('miniPlayerBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const bookmarkBtn = document.getElementById('bookmarkBtn');
+    const skipAdBtn = document.getElementById('skipAdBtn');
+    const chaptersBtn = document.getElementById('chaptersBtn');
+    const overlay = document.getElementById('overlay');
+    const spinner = document.getElementById('spinner');
+    const loadingText = document.getElementById('loadingText');
+    const controls = document.getElementById('controls');
+    const playerContainer = document.getElementById('playerContainer');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const feedbackBox = document.getElementById('feedbackBox');
+    const adTimeDisplay = document.getElementById('adTimeDisplay');
+    const chapterListPopup = document.getElementById('chapterListPopup');
+    const chapterListUl = document.getElementById('chapterListUl');
+
+    const currentChannelNameSpan = document.getElementById('currentChannelName');
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const channelSelect = document.getElementById('channelSelect');
+
+    const adVideoSrc = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4";
+    const mainVideoSrc = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
+
+    const channelStreams = {
+        'KBS1': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+        'KBS2': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+        'KBSNEWS': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        'KBSSPORTS': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+    };
+
+    const chapters = [
+        { time: 0, title: "오프닝" },
+        { time: 60, title: "주요 내용 1" },
+        { time: 180, title: "주요 내용 2" },
+        { time: 300, title: "클라이맥스" },
+        { time: 420, title: "마무리" }
+    ];
+
+    let isAdPlaying = true;
+    let hideControlsTimeout;
+    let currentAspectRatio = 'contain';
+    let bookmarks = JSON.parse(localStorage.getItem('videoBookmarks')) || {};
+
+    video.src = adVideoSrc;
+    video.load();
+    video.volume = volumeControl.value;
+
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return "00:00";
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function updateTimeDisplay() {
+      if (video.duration) {
+        const current = formatTime(video.currentTime);
+        const total = formatTime(video.duration);
+        timeDisplay.textContent = `${current} / ${total}`;
+      } else {
+        timeDisplay.textContent = "00:00 / --:--";
+      }
+    }
+
+    function updatePlayPauseIcon() {
+      const svgNS = "http://www.w3.org/2000/svg";
+      playPauseBtn.innerHTML = "";
+      playPauseBtn.innerHTML = video.paused ?
+        `<svg viewBox="0 0 64 64" xmlns="${svgNS}" focusable="false" aria-hidden="true"><polygon points="16,12 52,32 16,52" /></svg>` :
+        `<svg viewBox="0 0 64 64" xmlns="${svgNS}" focusable="false" aria-hidden="true"><rect x="16" y="12" width="10" height="40"/><rect x="38" y="12" width="10" height="40"/></svg>`;
+    }
+
+    function togglePlay() {
+      if (video.paused) {
+        video.play();
+        overlay.style.display = 'none';
+        playerContainer.style.cursor = "none";
+      } else {
+        video.pause();
+        overlay.style.display = 'flex';
+        playerContainer.style.cursor = "default";
+      }
+      updatePlayPauseIcon();
+      showControls();
+    }
+
+    playPauseBtn.addEventListener('click', togglePlay);
+    video.addEventListener('click', togglePlay);
+
+    video.addEventListener('timeupdate', () => {
+      if (video.duration) {
+        progressBar.value = (video.currentTime / video.duration) * 100;
+        updateTimeDisplay();
+        if (isAdPlaying) {
+            adTimeDisplay.textContent = `광고 중: ${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+            if (video.currentTime >= 5 && skipAdBtn.style.display === 'inline-block') {
+                skipAdBtn.disabled = false;
+            }
+        }
+      }
+    });
+
+    progressBar.addEventListener('input', () => {
+      if (!isAdPlaying && video.duration) {
+        video.currentTime = (progressBar.value / 100) * video.duration;
+      } else if (isAdPlaying) {
+        showFeedback("광고 중에는 영상 탐색을 할 수 없습니다.");
+        progressBar.value = (video.currentTime / video.duration) * 100;
+      }
+    });
+
+    progressBar.addEventListener('click', (e) => {
+        if (isAdPlaying) {
+            showFeedback("광고 중에는 북마크 기능을 사용할 수 없습니다.");
+            return;
+        }
+        if (e.target.classList.contains('chapter-marker')) return;
+
+        const rect = progressBar.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickPercentage = (clickX / rect.width);
+        const clickTime = clickPercentage * video.duration;
+        let closestBookmarkTime = -1;
+        let minDiff = Infinity;
+
+        for (const timeStr in bookmarks) {
+            const bookmarkTime = parseFloat(timeStr);
+            const diff = Math.abs(bookmarkTime - clickTime);
+            if (diff < minDiff && diff < 5) {
+                minDiff = diff;
+                closestBookmarkTime = bookmarkTime;
+            }
+        }
+
+        if (closestBookmarkTime !== -1) {
+            video.currentTime = closestBookmarkTime;
+            showFeedback(`북마크로 이동: ${formatTime(closestBookmarkTime)}`);
+        }
+    });
+
+    volumeControl.addEventListener('input', () => {
+      video.volume = volumeControl.value;
+      showFeedback(`볼륨: ${(video.volume * 100).toFixed(0)}%`);
+    });
+
+    speedControl.addEventListener('change', () => {
+      if (isAdPlaying) {
+        speedControl.value = "1";
+        showFeedback("광고 중에는 재생 속도를 변경할 수 없습니다.");
+      } else {
+        video.playbackRate = speedControl.value;
+        showFeedback(`재생 속도: ${speedControl.value}x`);
+      }
+    });
+
+    aspectRatioBtn.addEventListener('click', () => {
+      if (currentAspectRatio === 'contain') {
+        currentAspectRatio = 'fill';
+        video.style.objectFit = 'fill';
+        showFeedback("화면 비율: 채우기 (Stretch)");
+      } else if (currentAspectRatio === 'fill') {
+        currentAspectRatio = 'cover';
+        video.style.objectFit = 'cover';
+        showFeedback("화면 비율: 꽉 채우기 (Crop)");
+      } else {
+        currentAspectRatio = 'contain';
+        video.style.objectFit = 'contain';
+        showFeedback("화면 비율: 맞춤 (Contain)");
+      }
+    });
+
+    pipBtn.addEventListener('click', async () => {
+      try {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else {
+          await video.requestPictureInPicture();
+        }
+      } catch {
+        alert('PIP 모드를 지원하지 않는 브라우저입니다.');
+      }
+    });
+
+    miniPlayerBtn.addEventListener('click', () => {
+        playerContainer.classList.toggle('mini-player');
+        if (playerContainer.classList.contains('mini-player')) {
+            miniPlayerBtn.textContent = '⛶ 일반';
+            showFeedback("미니 플레이어 모드");
+            controls.classList.remove('hide');
+            playerContainer.style.cursor = "default";
+            if (hideControlsTimeout) clearTimeout(hideControlsTimeout);
+        } else {
+            miniPlayerBtn.textContent = '🔽 미니';
+            showFeedback("일반 플레이어 모드");
+            if (!video.paused) showControls();
+        }
+    });
+
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        playerContainer.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    bookmarkBtn.addEventListener('click', () => {
+        if (isAdPlaying) {
+            showFeedback("광고 중에는 북마크를 추가할 수 없습니다.");
+            return;
+        }
+        if (video.duration) {
+            const time = Math.floor(video.currentTime);
+            if (!bookmarks[time]) {
+                bookmarks[time] = true;
+                showFeedback(`북마크 추가: ${formatTime(time)}`);
+            } else {
+                delete bookmarks[time];
+                showFeedback(`북마크 삭제: ${formatTime(time)}`);
+            }
+            localStorage.setItem('videoBookmarks', JSON.stringify(bookmarks));
+            drawBookmarks();
+        }
+    });
+    
+    function getProgressBarWidth() {
+        return progressBar.getBoundingClientRect().width;
+    }
+
+    function drawBookmarks() {
+        const progressBarWrapper = progressBar.parentElement;
+        progressBarWrapper.querySelectorAll('.bookmark-dot').forEach(dot => dot.remove());
+
+        if (!video.duration) return;
+
+        const progressBarWidth = getProgressBarWidth();
+
+        for (const timeStr in bookmarks) {
+            const time = parseFloat(timeStr);
+            if (time <= video.duration) {
+                const position = (time / video.duration) * progressBarWidth;
+                const dot = document.createElement('div');
+                dot.classList.add('bookmark-dot');
+                dot.style.left = `${position}px`;
+                progressBarWrapper.appendChild(dot);
+            }
+        }
+    }
+
+    function drawChapters() {
+        const progressBarWrapper = progressBar.parentElement;
+        progressBarWrapper.querySelectorAll('.chapter-marker').forEach(marker => marker.remove());
+
+        if (!video.duration) return;
+
+        const progressBarWidth = getProgressBarWidth();
+
+        chapters.forEach(chapter => {
+            if (chapter.time <= video.duration) {
+                const position = (chapter.time / video.duration) * progressBarWidth;
+                const marker = document.createElement('div');
+                marker.classList.add('chapter-marker');
+                marker.style.left = `${position}px`;
+                marker.setAttribute('data-time', chapter.time);
+                marker.setAttribute('data-title', chapter.title);
+                marker.title = `${chapter.title} (${formatTime(chapter.time)})`;
+                progressBarWrapper.appendChild(marker);
+
+                marker.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (!isAdPlaying) {
+                        video.currentTime = chapter.time;
+                        showFeedback(`챕터 이동: ${chapter.title} (${formatTime(chapter.time)})`);
+                    } else {
+                        showFeedback("광고 중에는 챕터 이동을 할 수 없습니다.");
+                    }
+                });
+            }
+        });
+    }
+
+    chaptersBtn.addEventListener('click', (e) => {
+        if (isAdPlaying) {
+            showFeedback("광고 중에는 챕터 목록을 사용할 수 없습니다.");
+            return;
+        }
+        e.stopPropagation();
+        chapterListUl.innerHTML = '';
+        chapters.forEach(chapter => {
+            const li = document.createElement('li');
+            const button = document.createElement('button');
+            button.innerHTML = `<span>${formatTime(chapter.time)}</span>${chapter.title}`;
+            button.addEventListener('click', () => {
+                video.currentTime = chapter.time;
+                showFeedback(`챕터 이동: ${chapter.title} (${formatTime(chapter.time)})`);
+                chapterListPopup.classList.remove('show');
+            });
+            li.appendChild(button);
+            chapterListUl.appendChild(li);
+        });
+        chapterListPopup.classList.toggle('show');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!chapterListPopup.contains(e.target) && e.target !== chaptersBtn) {
+            chapterListPopup.classList.remove('show');
+        }
+    });
+
+    function updateAdControls(adMode) {
+      isAdPlaying = adMode;
+      adTimeDisplay.style.display = adMode ? 'block' : 'none';
+      skipAdBtn.style.display = adMode ? 'inline-block' : 'none';
+      if(adMode) skipAdBtn.disabled = true;
+
+      speedControl.disabled = adMode;
+      bookmarkBtn.disabled = adMode;
+      chaptersBtn.disabled = adMode;
+      progressBar.disabled = adMode;
+      
+      if(!adMode) speedControl.value = video.playbackRate; // Restore original speed setting
+    }
+
+    function playMainVideo() {
+        if (!isAdPlaying) return;
+        updateAdControls(false);
+        video.src = channelStreams[channelSelect.value] || mainVideoSrc;
+        video.load();
+        video.play().catch(e => console.log("자동재생 실패:", e));
+        showFeedback("광고가 종료되었습니다.");
+    }
+
+    video.addEventListener('ended', () => {
+      if (isAdPlaying) {
+        playMainVideo();
+      } else {
+        overlay.style.display = 'flex';
+        updatePlayPauseIcon();
+      }
+    });
+
+    skipAdBtn.addEventListener('click', playMainVideo);
+
+    function showFeedback(message) {
+      feedbackBox.textContent = message;
+      feedbackBox.style.opacity = '1';
+      setTimeout(() => { feedbackBox.style.opacity = '0'; }, 1500);
+    }
+
+    function showLoading(isLoading) {
+      spinner.style.display = isLoading ? 'block' : 'none';
+      loadingText.style.display = isLoading ? 'block' : 'none';
+    }
+
+    function showControls() {
+        if (playerContainer.classList.contains('mini-player')) return;
+        controls.classList.remove('hide');
+        if (hideControlsTimeout) clearTimeout(hideControlsTimeout);
+        if (!video.paused) {
+            hideControlsTimeout = setTimeout(() => { controls.classList.add('hide'); }, 3000);
+        }
+    }
+    
+    playerContainer.addEventListener('mousemove', showControls);
+    playerContainer.addEventListener('mouseleave', () => {
+        if (hideControlsTimeout) clearTimeout(hideControlsTimeout);
+        if (!video.paused) hideControlsTimeout = setTimeout(() => { controls.classList.add('hide'); }, 500);
+    });
+
+    video.addEventListener('play', updatePlayPauseIcon);
+    video.addEventListener('pause', updatePlayPauseIcon);
+    video.addEventListener('waiting', () => showLoading(true));
+    video.addEventListener('playing', () => showLoading(false));
+    video.addEventListener('canplay', () => showLoading(false));
+
+    video.addEventListener('loadedmetadata', () => {
+        updateTimeDisplay();
+        if (!isAdPlaying) {
+          drawBookmarks();
+          drawChapters();
+        }
+    });
+
+    function changeChannel() {
+        const selectedChannel = channelSelect.value;
+        const selectedChannelName = channelSelect.options[channelSelect.selectedIndex].text;
+        currentChannelNameSpan.textContent = selectedChannelName;
+        
+        showLoading(true);
+        video.pause();
+
+        // 북마크는 채널별로 다를 수 있으므로 리셋 (개선: 채널별로 저장/로드)
+        // localStorage.removeItem('videoBookmarks');
+        // bookmarks = {};
+
+        // NOTE: 데모를 위해 광고부터 다시 시작
+        isAdPlaying = true;
+        updateAdControls(true);
+        video.src = adVideoSrc;
+        video.load();
+        video.play().catch(e => console.log("채널 변경 후 자동재생 실패:", e));
+    }
+
+    channelSelect.addEventListener('change', changeChannel);
+
+    document.addEventListener('keydown', (e) => {
+        const activeEl = document.activeElement;
+        if (activeEl === searchInput || activeEl.tagName === 'BUTTON' || activeEl.tagName === 'SELECT') return;
+
+        switch (e.key) {
+            case ' ':
+                e.preventDefault();
+                togglePlay();
+                break;
+            case 'f':
+                fullscreenBtn.click();
+                break;
+
+            case 'ArrowLeft':
+            case 'ArrowRight':
+                e.preventDefault();
+                if (isAdPlaying) {
+                    showFeedback("광고 중에는 영상 탐색을 할 수 없습니다.");
+                    return;
+                }
+                const seekTime = e.key === 'ArrowLeft' ? -5 : 5;
+                video.currentTime += seekTime;
+                showFeedback(`${seekTime > 0 ? '+' : ''}${seekTime}초`);
+                updateTimeDisplay();
+                break;
+
+            case 'ArrowUp':
+            case 'ArrowDown':
+                e.preventDefault();
+                let newVolume = video.volume + (e.key === 'ArrowUp' ? 0.1 : -0.1);
+                newVolume = Math.max(0, Math.min(1, newVolume));
+                video.volume = newVolume;
+                volumeControl.value = newVolume;
+                showFeedback(`볼륨: ${(newVolume * 100).toFixed(0)}%`);
+                break;
+
+            case 'm':
+                video.muted = !video.muted;
+                showFeedback(video.muted ? "음소거" : "음소거 해제");
+                break;
+        }
+    });
+    
+    window.addEventListener('resize', () => {
+        if (!isAdPlaying && video.duration > 0) {
+            drawBookmarks();
+            drawChapters();
+        }
+    });
+    
+    playerContainer.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+            fullscreenBtn.textContent = "💻 일반화면";
+        } else {
+            fullscreenBtn.textContent = "⛶ 전체화면";
+        }
+    });
+
+    updateAdControls(true); // 초기 설정
+    showControls();
+    updatePlayPauseIcon();
+  });
+</script>
+
+</body>
+</html>
