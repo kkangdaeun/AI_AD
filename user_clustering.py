@@ -1,4 +1,4 @@
-# ===== [0] 라이브러리 import =====
+# ===== [0] 라이브러리 불러오기 =====
 import os
 os.system("pip install numpy pandas matplotlib scikit-learn scipy")
 import numpy as np
@@ -57,37 +57,49 @@ X = StandardScaler().fit_transform(pivot_rate.values)
 k = 4
 labels = KMeans(n_clusters=k, random_state=0).fit_predict(X)
 pivot_rate['cluster'] = labels
+genre_cols = [
+    col for col in pivot_rate.columns
+    if col not in ('cluster', 'segment')
+]
+# 세그먼트 매핑
+cluster_to_segment = {
+    0: '어린이_4-9세',
+    1: '시니어_50-60대',
+    2: '청장년_10-30대',
+    3: '중장년_40-50대_남성'
+}
+pivot_rate['segment'] = pivot_rate['cluster'].map(cluster_to_segment)
 
 
 # ===== [6] PCA 시각화 =====
-coords = PCA(n_components=2).fit_transform(X)
-plt.rcParams['font.family'] = 'Malgun Gothic'
-plt.figure(figsize=(8,6))
-for i, lab in enumerate(labels):
-    age, gen = pivot_rate.index[i]
-    x,y = coords[i]
-    plt.scatter(x, y, 
-                c=[plt.cm.tab10(lab)], s=100, alpha=0.8)
-    plt.annotate(f"{age}–{gen}", (x,y),
-                 textcoords="offset points", xytext=(5,3))
-plt.title('시청률 기반 클러스터링 (k=4)')
-plt.xlabel('PCA 1'); plt.ylabel('PCA 2')
-plt.grid(True)
-plt.legend(handles=[
-    plt.Line2D([],[],marker='o', color=plt.cm.tab10(c), linestyle='', label=f'Cluster {c}')
-    for c in range(k)
-], title='Cluster', bbox_to_anchor=(1.05,1), loc='upper left')
-plt.tight_layout()
-plt.show()
+# coords = PCA(n_components=2).fit_transform(X)
+# plt.rcParams['font.family'] = 'Malgun Gothic'
+# plt.figure(figsize=(8,6))
+# for i, lab in enumerate(labels):
+#     age, gen = pivot_rate.index[i]
+#     x,y = coords[i]
+#     plt.scatter(x, y, 
+#                 c=[plt.cm.tab10(lab)], s=100, alpha=0.8)
+#     plt.annotate(f"{age}–{gen}", (x,y),
+#                  textcoords="offset points", xytext=(5,3))
+# plt.title('시청률 기반 클러스터링 (k=4)')
+# plt.xlabel('PCA 1'); plt.ylabel('PCA 2')
+# plt.grid(True)
+# plt.legend(handles=[
+#     plt.Line2D([],[],marker='o', color=plt.cm.tab10(c), linestyle='', label=f'Cluster {c}')
+#     for c in range(k)
+# ], title='Cluster', bbox_to_anchor=(1.05,1), loc='upper left')
+# plt.tight_layout()
+# plt.show()
 
 
 # ===== [7] 덴드로그램 =====
-plt.figure(figsize=(10,4))
-sch.dendrogram(
-    sch.linkage(X, method='ward'),
-    labels=[f"{age}-{gen}" for age,gen in pivot_rate.index],
-    leaf_rotation=45
-)
-plt.title('시청률 기반 덴드로그램')
-plt.tight_layout()
-plt.show()
+# plt.figure(figsize=(10,4))
+# sch.dendrogram(
+#     sch.linkage(X, method='ward'),
+#     labels=[f"{age}-{gen}" for age,gen in pivot_rate.index],
+#     leaf_rotation=45
+# )
+# plt.title('시청률 기반 덴드로그램')
+# plt.tight_layout()
+# plt.show()
