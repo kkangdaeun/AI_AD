@@ -150,24 +150,24 @@ class AdRecommender:
         return (sm / sm.sum()).to_dict()
 
 # ===== 사용 예시 =====
-data_path = './data/advertisement/AISAC_업종별분류.csv'
+data_path = './data/advertisement/AISAC 광고소재명별 광고 정보.csv'
 ad_data = pd.read_csv(data_path)
 engine = AdRecommender(ad_data)
 engine.fit()
 
 # 사용자 정보 받아오기
-# num_of_queue = 20
-# user_segment = '중장년_40-50대_남성'
-# props = engine.infer_major_props(user_segment, epsilon=0.2)
-# recs = engine.recommend(
-#     segment=user_segment,
-#     top_k=num_of_queue,
-#     candidate_size=len(ad_data),
-#     w_title=0.2,
-#     w_cat=0.8,
-#     major_props=props,
-#     max_per_cat=3,
-#     top_n_per_cat=5,
-#     temperature=1.2
-# )
-# print(recs[['광고소재명','대업종 분류','중업종 분류','소업종 분류','score']])
+num_of_queue = 20
+user_segment = '중장년_40-50대_남성'
+props = engine.infer_major_props(user_segment, epsilon=0.2)
+recs = engine.recommend(
+    segment=user_segment,
+    top_k=num_of_queue,
+    candidate_size=len(ad_data),
+    w_title=0.2,
+    w_cat=0.8,
+    major_props=props,
+    max_per_cat=3,
+    top_n_per_cat=5,
+    temperature=1.5
+)
+print(recs[['광고소재명','대업종 분류','중업종 분류','소업종 분류', '광고주명', '광고회사명', '광고제작사', 'score']])
