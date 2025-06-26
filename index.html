@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KBS 스타일 플레이어 (고급 UI)</title>
+  <title>KBS 스타일 플레이어 (고급 UI - 개선판)</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap');
 
@@ -52,7 +53,6 @@
     }
     .channel-info {
       font-size: 1rem;
-      margin-top: 4px; /* 기존 h1 아래 padding 조절 */
       color: #aaa;
       display: flex;
       align-items: center;
@@ -71,6 +71,10 @@
     }
     .channel-info a:hover, .header-right button:hover {
         color: #fff100;
+    }
+    #recentChannelBtn:hover {
+        background-color: rgba(255, 204, 0, 0.2) !important;
+        color: #ffcc00 !important;
     }
     .header-right .search-box {
         display: flex;
@@ -138,10 +142,24 @@
       padding: 24px 0;
     }
 
+    /* 새로운 래퍼 추가 */
+    #miniPlayerActiveWrapper {
+        width: 90vw;
+        max-width: 1200px;
+        margin: 0 auto;
+        /* 미니 플레이어 활성 시 원래 플레이어 공간 숨김 */
+        transition: height 0.3s ease-out, opacity 0.3s ease-out;
+    }
+    #miniPlayerActiveWrapper.mini-player-active-wrapper {
+        height: 0;
+        opacity: 0;
+        overflow: hidden;
+        margin: 0; /* Ensures it collapses fully */
+        padding: 0; /* Ensures it collapses fully */
+    }
+
     .player-container {
-      max-width: 1200px;
-      width: 90vw;
-      margin: 0 auto;
+      width: 100%; /* Changed from 90vw to 100% relative to parent */
       background-color: #000;
       position: relative;
       border-radius: 12px;
@@ -161,7 +179,10 @@
       border-radius: 8px;
       box-shadow: 0 0 15px rgba(255, 204, 0, 0.8), 0 0 30px rgba(0,0,0,0.8);
       z-index: 100;
-      cursor: default;
+      cursor: grab;
+    }
+    .player-container.mini-player:active {
+        cursor: grabbing;
     }
     .player-container.mini-player .controls {
         opacity: 1 !important;
@@ -186,7 +207,6 @@
       background: black;
     }
 
-    /* 로딩 스피너 */
     .spinner {
       position: absolute;
       top: 50%;
@@ -209,7 +229,7 @@
 
     .loading-text {
         position: absolute;
-        top: calc(50% + 30px);
+        top: calc(50% + 40px);
         left: 50%;
         transform: translateX(-50%);
         color: #ffcc00;
@@ -221,53 +241,33 @@
         white-space: nowrap;
     }
 
-    .overlay {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: none;
-      z-index: 15;
-    }
-
-    .overlay-btn {
-      background: rgba(255, 204, 0, 0.85);
-      border: none;
-      border-radius: 50%;
-      width: 80px;
-      height: 80px;
-      cursor: pointer;
-      box-shadow: 0 0 16px rgba(255, 204, 0, 0.9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background-color 0.3s ease;
-    }
-    .overlay-btn:hover {
-      background: #ffcc00;
-      box-shadow: 0 0 28px #ffcc00;
-    }
-    .overlay-btn svg {
-      width: 40px;
-      height: 40px;
-      fill: #111;
-      pointer-events: none;
-    }
-
     .controls {
-      padding: 14px 20px;
-      background-color: #181818;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 10px 20px;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
       display: flex;
       flex-direction: column;
       gap: 8px;
       user-select: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+    .player-container:hover .controls,
+    .controls.show {
       opacity: 1;
-      transition: opacity 0.5s ease;
       pointer-events: auto;
     }
-    .controls.hide {
-      opacity: 0;
-      pointer-events: none;
+
+    .progress-bar-container {
+        position: relative;
+        width: 100%;
+        height: 16px; /* 호버 영역 확보 */
+        display: flex;
+        align-items: center;
     }
 
     #progressBar {
@@ -275,39 +275,36 @@
       width: 100%;
       height: 6px;
       border-radius: 3px;
-      background: #444;
+      background: rgba(255, 255, 255, 0.3);
       cursor: pointer;
-      transition: background 0.3s ease;
+      transition: all 0.2s ease;
       position: relative;
+      vertical-align: middle;
+    }
+    .progress-bar-container:hover #progressBar {
+        height: 8px; /* 호버 시 높이 증가 */
     }
     #progressBar::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
       background: #ffcc00;
       cursor: pointer;
       border: none;
       transition: background-color 0.3s ease;
-      margin-top: -4px;
-      box-shadow: 0 0 8px #ffcc00;
+      box-shadow: 0 0 8px rgba(0,0,0,0.5);
+      margin-top: -4px; /* (16px - 8px) / 2 */
     }
     #progressBar::-moz-range-thumb {
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
       background: #ffcc00;
       border: none;
       cursor: pointer;
-      box-shadow: 0 0 8px #ffcc00;
-    }
-    #progressBar:hover {
-      background: #666;
-    }
-    #progressBar:focus::-webkit-slider-thumb {
-      background: #fff100;
-      box-shadow: 0 0 12px #fff100;
+      box-shadow: 0 0 8px rgba(0,0,0,0.5);
     }
     #progressBar:disabled {
         pointer-events: none;
@@ -317,43 +314,61 @@
         background: #888;
         box-shadow: none;
     }
-
-    /* 북마크 표시 */
-    .bookmark-dot {
+    .progress-tooltip {
         position: absolute;
-        width: 8px;
-        height: 8px;
-        background-color: #00bcd4;
-        border-radius: 50%;
-        top: -1px;
+        bottom: 25px;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        transform: translateX(-50%);
+        display: none; /* 기본 숨김 */
+        z-index: 10;
+    }
+
+
+    /* 북마크/챕터 마커 스타일 */
+    .bookmark-dot, .chapter-marker {
+        position: absolute;
+        height: 100%;
+        top: 0;
         transform: translateX(-50%);
         pointer-events: none;
         z-index: 5;
     }
-
-    /* 챕터 마커 */
+    .bookmark-dot::after, .chapter-marker::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+    }
+    .bookmark-dot::after {
+        width: 8px;
+        height: 8px;
+        background-color: #00bcd4;
+    }
     .chapter-marker {
-        position: absolute;
-        width: 4px;
-        height: 10px;
-        background-color: #f44336; /* 챕터 색상 */
-        top: -2px; /* 진행바 위로 약간 튀어나오게 */
-        transform: translateX(-50%);
         pointer-events: all; /* 클릭 가능하게 */
-        z-index: 6;
         cursor: pointer;
+    }
+    .chapter-marker::after {
+        width: 6px;
+        height: 12px;
+        background-color: #f44336;
         border-radius: 2px;
-        box-shadow: 0 0 5px rgba(244, 67, 54, 0.7);
-        transition: background-color 0.2s ease, transform 0.2s ease;
+        transition: transform 0.2s ease, background-color 0.2s ease;
     }
-    .chapter-marker:hover {
+    .chapter-marker:hover::after {
         background-color: #ff0000;
-        transform: translateX(-50%) scale(1.2);
+        transform: translate(-50%, -50%) scale(1.3);
     }
-    .chapter-marker::before {
-        content: attr(data-title);
+    .chapter-marker .chapter-tooltip {
         position: absolute;
-        top: -25px;
+        bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
         background-color: rgba(0, 0, 0, 0.8);
@@ -366,7 +381,7 @@
         pointer-events: none;
         transition: opacity 0.2s ease;
     }
-    .chapter-marker:hover::before {
+    .chapter-marker:hover .chapter-tooltip {
         opacity: 1;
     }
 
@@ -378,82 +393,122 @@
       gap: 12px;
       flex-wrap: wrap;
     }
+    .controls-left, .controls-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .volume-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
 
-    input[type="range"] {
-      width: 130px;
+    #volumeSlider {
+      -webkit-appearance: none;
+      width: 80px;
       cursor: pointer;
       background: transparent;
+      height: 16px;
+    }
+    #volumeSlider::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 5px;
+        background: rgba(255,255,255,0.4);
+        border-radius: 3px;
+    }
+    #volumeSlider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #fff;
+        cursor: pointer;
+        border: none;
+        margin-top: -4.5px;
+    }
+    .volume-container i {
+        cursor: pointer;
+        font-size: 1.2rem;
     }
 
     select, button {
-      background-color: #222;
-      color: #ffcc00;
-      border: 1px solid #444;
-      padding: 8px 16px;
+      background-color: transparent;
+      color: #eee;
+      border: none;
+      padding: 8px;
       border-radius: 6px;
       font-weight: 600;
       font-size: 1rem;
       cursor: pointer;
-      transition: background-color 0.25s ease, border-color 0.25s ease;
-      min-width: 80px;
+      transition: background-color 0.25s ease, color 0.25s ease;
+      min-width: 40px;
       text-align: center;
       user-select: none;
     }
-    select {
-      padding-right: 10px;
+    button {
+        font-size: 1.4rem;
+        line-height: 1;
     }
-    button:hover, select:hover {
-      background-color: #ffcc00;
-      color: #111;
-      border-color: #ffcc00;
-      box-shadow: 0 0 10px #ffcc00aa;
+    select {
+      font-size: 1rem;
+      padding: 8px 4px;
+    }
+    select option {
+        background: #222;
+        color: #eee;
+    }
+
+    button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    select:hover {
+        background-color: #222;
     }
     select:disabled, button:disabled {
-      opacity: 0.6;
+      opacity: 0.5;
       cursor: not-allowed;
-      box-shadow: none;
+      background-color: transparent;
     }
-    select:disabled:hover, button:disabled:hover {
-        background-color: #222;
-        color: #ffcc00;
-        border-color: #444;
-    }
-
-    /* 재생시간 표시 */
+    
     .time-display {
-      color: #aaa;
-      font-size: 0.95rem;
+      color: #eee;
+      font-size: 1rem;
       user-select: none;
-      min-width: 110px;
-      text-align: right;
+      min-width: 120px;
+      text-align: center;
       font-feature-settings: "tnum";
       font-variant-numeric: tabular-nums;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
     }
 
-    /* 볼륨/속도 피드백 박스 */
     .feedback-box {
       position: absolute;
-      bottom: 110px;
-      right: 20px;
-      background: rgba(255, 204, 0, 0.9);
-      color: #111;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20, 20, 20, 0.85);
+      backdrop-filter: blur(5px);
+      color: #ffcc00;
       font-weight: 700;
-      padding: 8px 14px;
+      padding: 10px 18px;
       border-radius: 8px;
-      box-shadow: 0 0 12px #ffcc00cc;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
       font-size: 1.1rem;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.3s ease, transform 0.3s ease;
       z-index: 25;
       user-select: none;
-      font-family: monospace;
+    }
+    .feedback-box.show {
+        opacity: 1;
+        transform: translate(-50%, -10px);
     }
 
-    /* 광고 시간 표시 */
     .ad-time-display {
         position: absolute;
-        top: 10px;
+        bottom: 10px;
         left: 10px;
         background: rgba(0, 0, 0, 0.7);
         color: #ffcc00;
@@ -463,18 +518,49 @@
         z-index: 10;
         display: none;
     }
-
-    /* 챕터 목록 팝업 */
-    .chapter-list-popup {
+    
+    #skipSlideOverlay {
         position: absolute;
-        bottom: 100%; /* 컨트롤 바 위로 */
-        right: 0;
+        top: 50%;
+        left: calc(100% - 50px); /* Adjust to make right edge 50px from container right */
+        transform: translate(-100%, -50%); /* Start point (right edge aligns with left of text) */
+        background: rgba(255,255,255,0.15);
+        color: #fff;
+        padding: 14px 28px;
+        font-size: 20px;
+        font-weight: bold;
+        border-radius: 30px;
+        transition: all 0.1s ease-out; /* Re-enable transition after drag */
+        pointer-events: none; /* Controlled by JS now */
+        z-index: 15;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        opacity: 0; /* Controlled by JS now */
+        white-space: nowrap;
+        cursor: grab; /* Add cursor for dragging */
+    }
+
+    .ad-controls-button { /* New style for ad next button */
+        background-color: rgba(255, 204, 0, 0.2);
+        color: #ffcc00;
+        padding: 8px 15px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        display: none; /* Hidden by default, shown by JS when ad plays */
+    }
+    .ad-controls-button:hover {
+        background-color: rgba(255, 204, 0, 0.4);
+        color: #fff;
+    }
+
+    .popup-menu {
+        position: absolute;
         background-color: rgba(34, 34, 34, 0.95);
         border: 1px solid #444;
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         padding: 10px 0;
-        margin-bottom: 10px;
         width: 250px;
         max-height: 250px;
         overflow-y: auto;
@@ -482,19 +568,19 @@
         visibility: hidden;
         transform: translateY(10px);
         transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
-        z-index: 30; /* 피드백 박스보다 위 */
+        z-index: 30;
     }
-    .chapter-list-popup.show {
+    .popup-menu.show {
         opacity: 1;
         visibility: visible;
         transform: translateY(0);
     }
-    .chapter-list-popup ul {
+    .popup-menu ul {
         list-style: none;
         padding: 0;
         margin: 0;
     }
-    .chapter-list-popup li button {
+    .popup-menu li button {
         display: block;
         width: 100%;
         text-align: left;
@@ -509,71 +595,40 @@
         text-overflow: ellipsis;
         min-width: auto;
     }
-    .chapter-list-popup li button span {
+    .popup-menu li button span {
         color: #aaa;
         font-size: 0.8rem;
-        margin-right: 5px;
+        margin-right: 8px;
+        font-feature-settings: "tnum";
     }
-    .chapter-list-popup li button:hover {
-        background-color: #ffcc00;
-        color: #111;
-        border-color: transparent;
-        box-shadow: none;
+    .popup-menu li button:hover {
+        background-color: #ffcc00 !important;
+        color: #111 !important;
     }
-    .chapter-list-popup li button:hover span {
+    .popup-menu li button:hover span {
         color: #444;
     }
-
+    #chapterListPopup {
+        bottom: 100%;
+        right: 0;
+        margin-bottom: 10px;
+    }
+    #recentChannelPopup {
+        position: fixed;
+        width: 200px;
+        max-height: 300px;
+    }
+  
 
     @media (max-width: 768px) {
-      .header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-      }
-      .header-left, .header-right {
-        width: 100%;
-        justify-content: space-between;
-      }
-      .header-left {
-        flex-wrap: wrap;
-      }
-      .header-right {
-        flex-wrap: wrap;
-        margin-top: 5px;
-      }
-      .header-right .search-box {
-          flex-grow: 1;
-          margin-right: 5px;
-      }
-      .header-right .search-box input {
-          width: auto;
-          flex-grow: 1;
-      }
-      .buttons {
-        justify-content: center;
-        gap: 10px;
-      }
-      input[type="range"] {
-        width: 100px;
-      }
-      button, select {
-        padding: 6px 12px;
-        font-size: 0.9rem;
-        min-width: 70px;
-      }
-      .time-display {
-        min-width: 90px;
-        font-size: 0.85rem;
-      }
-      .player-container.mini-player {
-        width: 250px;
-        bottom: 10px;
-        right: 10px;
-      }
-      .chapter-list-popup {
-          width: 200px;
-      }
+      .header { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .header-left, .header-right { width: 100%; justify-content: space-between; }
+      .header-right { flex-wrap: wrap; margin-top: 5px; }
+      .header-right .search-box { flex-grow: 1; margin-right: 5px; }
+      .header-right .search-box input { width: auto; flex-grow: 1; }
+      .controls-left .time-display { display: none; }
+      .volume-container { display: none; }
+      .player-container.mini-player { width: 250px; bottom: 10px; right: 10px; }
     }
   </style>
 </head>
@@ -586,18 +641,17 @@
         <a href="https://kbs.co.kr/schedule" target="_blank" title="편성표 바로가기">
           <svg fill="#ffcc00" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
             <path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/>
-            <path d="M0 0h24v24H0z" fill="none"/>
           </svg>
         </a>
       </div>
-    </div>
+      <button id="recentChannelBtn" style="background: none; border: 1px solid #555; color: #fff; font-size: 0.9rem; cursor: pointer; padding: 5px 10px; border-radius: 5px; transition: background-color 0.2s ease, color 0.2s ease;">최근 본 채널</button>
+      </div>
     <div class="header-right">
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="콘텐츠 검색" aria-label="콘텐츠 검색">
             <button id="searchBtn" aria-label="검색">
                 <svg fill="#ffcc00" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
                     <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 10.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                    <path d="M0 0h24v24H0z" fill="none"/>
                 </svg>
             </button>
         </div>
@@ -613,527 +667,700 @@
   </header>
 
   <div class="main-content">
-    <div class="player-container" id="playerContainer">
-      <div class="video-wrapper">
-        <video id="video" playsinline></video>
-        <div class="spinner" id="spinner"></div>
-        <div class="loading-text" id="loadingText">영상 준비 중...</div>
-        <div id="overlay" class="overlay" aria-label="재생/일시정지 버튼">
-          <button id="playPauseBtn" class="overlay-btn" aria-label="재생/일시정지">
-            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
-              <polygon points="16,12 52,32 16,52" />
-            </svg>
-          </button>
-        </div>
-        <div class="ad-time-display" id="adTimeDisplay"></div>
-      </div>
+    <div id="miniPlayerActiveWrapper"> <div class="player-container" id="playerContainer">
+            <div class="video-wrapper">
+                <video id="videoPlayer" playsinline controls autoplay muted></video>
+                <div class="spinner" id="spinner"></div>
+                <div class="loading-text" id="loadingText">영상 준비 중...</div>
+                <div class="ad-time-display" id="adTimeDisplay"></div>
+                <div id="skipSlideOverlay">밀어서 광고 건너뛰기</div>
+            </div>
 
-      <div class="controls" id="controls">
-        <div style="position: relative;">
-          <input type="range" id="progressBar" value="0" aria-label="재생 위치 조절" />
-        </div>
-        <div class="buttons">
-          <input type="range" id="volumeControl" min="0" max="1" step="0.01" value="1" aria-label="볼륨 조절" />
-          <select id="speedControl" aria-label="재생 속도">
-            <option value="0.5">0.5x</option>
-            <option value="1" selected>1x</option>
-            <option value="1.5">1.5x</option>
-            <option value="2">2x</option>
-          </select>
-          <button id="aspectRatioBtn" aria-label="화면 비율 조절">🔲 화면비</button>
-          <button id="pipBtn" aria-label="PIP 모드">📺 PIP</button>
-          <button id="miniPlayerBtn" aria-label="미니 플레이어 모드">🔽 미니</button>
-          <button id="fullscreenBtn" aria-label="전체화면">⛶ 전체화면</button>
-          <button id="bookmarkBtn" aria-label="북마크 추가">⭐ 북마크</button>
-          <button id="chaptersBtn" aria-label="챕터 목록">📖 챕터</button>
-          <button id="skipAdBtn" aria-label="광고 스킵" style="display:none;">⏭ 광고 스킵</button>
-          <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
-        </div>
-      </div>
+            <div class="controls" id="controls">
+                <div class="progress-bar-container">
+                <input type="range" id="progressBar" value="0" min="0" max="100" step="0.1" aria-label="재생 위치 조절" />
+                <div class="progress-tooltip" id="progressTooltip"></div>
+                </div>
+                <div class="buttons">
+                    <div class="controls-left">
+                        <button id="controlsPlayPauseBtn" aria-label="재생"><i id="playPauseIcon" class="fas fa-play"></i></button>
+                        <div class="volume-container">
+                            <i id="volumeIcon" class="fas fa-volume-up" aria-label="음소거 토글"></i>
+                            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" aria-label="볼륨 조절" />
+                        </div>
+                        <div class="time-display" id="timeDisplay"><span id="currentTime">00:00</span> / <span id="duration">00:00</span></div>
+                        <button id="adNextBtn" class="ad-controls-button" style="display: none;">다음 광고</button> </div>
+                    <div class="controls-right">
+                        <select id="speedSelect" aria-label="재생 속도" title="재생 속도">
+                            <option value="0.5">0.5x</option>
+                            <option value="1" selected>1x</option>
+                            <option value="1.5">1.5x</option>
+                            <option value="2">2x</option>
+                        </select>
+                        <select id="fitSelect" aria-label="화면 맞춤" title="화면 맞춤">
+                            <option value="contain" selected>맞춤</option>
+                            <option value="fill">채우기</option>
+                            <option value="cover">꽉 채우기</option>
+                        </select>
+                        <button id="bookmarkBtn" aria-label="북마크 추가/삭제" title="북마크"><i class="fas fa-bookmark"></i></button>
+                        <button id="chaptersBtn" aria-label="챕터 목록" title="챕터"><i class="fas fa-list-alt"></i></button>
+                        <button id="pipBtn" aria-label="PIP 모드" title="PIP 모드"><i class="fas fa-clone"></i></button>
+                        <button id="miniPlayerBtn" aria-label="미니 플레이어" title="미니 플레이어"><i class="fas fa-window-minimize"></i></button>
+                        <button id="fullscreenBtn" aria-label="전체화면" title="전체화면"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
 
-      <div class="feedback-box" id="feedbackBox" aria-live="polite" aria-atomic="true"></div>
-      <div class="chapter-list-popup" id="chapterListPopup">
-          <ul id="chapterListUl"></ul>
-      </div>
-    </div>
+            <div class="feedback-box" id="feedbackBox" aria-live="polite" aria-atomic="true"></div>
+            <div class="popup-menu" id="chapterListPopup">
+                <ul id="chapterListUl"></ul>
+            </div>
+        </div>
+    </div> </div>
+  <div class="popup-menu" id="recentChannelPopup">
+      <ul id="recentChannelUl"></ul>
   </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const video = document.getElementById('video');
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    const progressBar = document.getElementById('progressBar');
-    const volumeControl = document.getElementById('volumeControl');
-    const speedControl = document.getElementById('speedControl');
-    const aspectRatioBtn = document.getElementById('aspectRatioBtn');
-    const pipBtn = document.getElementById('pipBtn');
-    const miniPlayerBtn = document.getElementById('miniPlayerBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const bookmarkBtn = document.getElementById('bookmarkBtn');
-    const skipAdBtn = document.getElementById('skipAdBtn');
-    const chaptersBtn = document.getElementById('chaptersBtn');
-    const overlay = document.getElementById('overlay');
-    const spinner = document.getElementById('spinner');
-    const loadingText = document.getElementById('loadingText');
-    const controls = document.getElementById('controls');
-    const playerContainer = document.getElementById('playerContainer');
-    const timeDisplay = document.getElementById('timeDisplay');
-    const feedbackBox = document.getElementById('feedbackBox');
-    const adTimeDisplay = document.getElementById('adTimeDisplay');
-    const chapterListPopup = document.getElementById('chapterListPopup');
-    const chapterListUl = document.getElementById('chapterListUl');
+document.addEventListener('DOMContentLoaded', () => {
+    // 즉시 실행 함수 (IIFE)로 전체 코드를 감싸 전역 스코프 오염 방지
+    (function() {
+        // --- 요소 정의 ---
+        const getElem = (id) => document.getElementById(id);
+        const video = getElem('videoPlayer');
+        const playerContainer = getElem('playerContainer');
+        const controlsPlayPauseBtn = getElem('controlsPlayPauseBtn');
+        const playPauseIcon = getElem('playPauseIcon');
+        const progressBar = getElem('progressBar');
+        const volumeSlider = getElem('volumeSlider');
+        const volumeIcon = getElem('volumeIcon');
+        const speedSelect = getElem('speedSelect');
+        const fitSelect = getElem('fitSelect');
+        const pipBtn = getElem('pipBtn');
+        const miniPlayerBtn = getElem('miniPlayerBtn');
+        const fullscreenBtn = getElem('fullscreenBtn');
+        const fullscreenIcon = fullscreenBtn.querySelector('i');
+        const feedbackBox = getElem('feedbackBox');
+        const currentTimeSpan = getElem('currentTime');
+        const durationSpan = getElem('duration');
+        const channelSelect = getElem('channelSelect');
+        const currentChannelNameSpan = getElem('currentChannelName');
+        const searchInput = getElem('searchInput');
+        const searchBtn = getElem('searchBtn');
+        const spinner = getElem('spinner');
+        const loadingText = getElem('loadingText');
+        const adTimeDisplay = getElem('adTimeDisplay');
+        const skipSlideOverlay = getElem('skipSlideOverlay');
+        const bookmarkBtn = getElem('bookmarkBtn');
+        const progressBarContainer = document.querySelector('.progress-bar-container');
+        const progressTooltip = getElem('progressTooltip');
+        const chaptersBtn = getElem('chaptersBtn');
+        const chapterListPopup = getElem('chapterListPopup');
+        const chapterListUl = getElem('chapterListUl');
+        const recentChannelBtn = getElem('recentChannelBtn');
+        const recentChannelPopup = getElem('recentChannelPopup');
+        const recentChannelUl = getElem('recentChannelUl');
+        const controls = getElem('controls');
+        const adNextBtn = getElem('adNextBtn'); // Added: Next Ad Button
+        const miniPlayerActiveWrapper = getElem('miniPlayerActiveWrapper'); // 새로 추가된 래퍼
 
-    const currentChannelNameSpan = document.getElementById('currentChannelName');
-    const searchInput = document.getElementById('searchInput');
-    const searchBtn = document.getElementById('searchBtn');
-    const channelSelect = document.getElementById('channelSelect');
-
-    const adVideoSrc = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4";
-    const mainVideoSrc = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
-
-    const channelStreams = {
-        'KBS1': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-        'KBS2': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-        'KBSNEWS': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-        'KBSSPORTS': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
-    };
-
-    const chapters = [
-        { time: 0, title: "오프닝" },
-        { time: 60, title: "주요 내용 1" },
-        { time: 180, title: "주요 내용 2" },
-        { time: 300, title: "클라이맥스" },
-        { time: 420, title: "마무리" }
-    ];
-
-    let isAdPlaying = true;
-    let hideControlsTimeout;
-    let currentAspectRatio = 'contain';
-    let bookmarks = JSON.parse(localStorage.getItem('videoBookmarks')) || {};
-
-    video.src = adVideoSrc;
-    video.load();
-    video.volume = volumeControl.value;
-
-    function formatTime(seconds) {
-      if (isNaN(seconds)) return "00:00";
-      const m = Math.floor(seconds / 60);
-      const s = Math.floor(seconds % 60);
-      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    }
-
-    function updateTimeDisplay() {
-      if (video.duration) {
-        const current = formatTime(video.currentTime);
-        const total = formatTime(video.duration);
-        timeDisplay.textContent = `${current} / ${total}`;
-      } else {
-        timeDisplay.textContent = "00:00 / --:--";
-      }
-    }
-
-    function updatePlayPauseIcon() {
-      const svgNS = "http://www.w3.org/2000/svg";
-      playPauseBtn.innerHTML = "";
-      playPauseBtn.innerHTML = video.paused ?
-        `<svg viewBox="0 0 64 64" xmlns="${svgNS}" focusable="false" aria-hidden="true"><polygon points="16,12 52,32 16,52" /></svg>` :
-        `<svg viewBox="0 0 64 64" xmlns="${svgNS}" focusable="false" aria-hidden="true"><rect x="16" y="12" width="10" height="40"/><rect x="38" y="12" width="10" height="40"/></svg>`;
-    }
-
-    function togglePlay() {
-      if (video.paused) {
-        video.play();
-        overlay.style.display = 'none';
-      } else {
-        video.pause();
-        overlay.style.display = 'flex';
-        playerContainer.style.cursor = "default";
-      }
-      updatePlayPauseIcon();
-      showControls();
-    }
-
-    playPauseBtn.addEventListener('click', togglePlay);
-    video.addEventListener('click', togglePlay);
-
-    video.addEventListener('timeupdate', () => {
-      if (video.duration) {
-        progressBar.value = (video.currentTime / video.duration) * 100;
-        updateTimeDisplay();
-        if (isAdPlaying) {
-            adTimeDisplay.textContent = `광고 중: ${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
-            if (video.currentTime >= 5 && skipAdBtn.style.display === 'inline-block') {
-                skipAdBtn.disabled = false;
+        // --- 설정 및 상태 변수 ---
+        const config = {
+            adVideoSrc: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+            slideThreshold: -80, // Threshold for ad skip slide (pixels to the left)
+            chapters: [
+                { time: 0, title: "오프닝" }, { time: 60, title: "챕터 1: 시작" },
+                { time: 180, title: "챕터 2: 위기" }, { time: 300, title: "챕터 3: 절정" },
+                { time: 520, title: "엔딩 크레딧" }
+            ],
+            channelStreams: {
+                'KBS1': { playlist: [{ title: '엘리펀츠 드림', src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' }] },
+                'KBS2': { playlist: [{ title: '신텔', src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4' }] },
+                'KBSNEWS': { playlist: [{ title: 'For Bigger Blazes', src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' }] },
+                'KBSSPORTS': { playlist: [{ title: 'Tears of Steel', src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4' }] }
             }
-        }
-      }
-    });
+        };
 
-    progressBar.addEventListener('input', () => {
-      if (!isAdPlaying && video.duration) {
-        video.currentTime = (progressBar.value / 100) * video.duration;
-      } else if (isAdPlaying) {
-        showFeedback("광고 중에는 영상 탐색을 할 수 없습니다.");
-        progressBar.value = (video.currentTime / video.duration) * 100;
-      }
-    });
+        let state = {
+            isAdPlaying: true,
+            isDraggingProgress: false,
+            bookmarks: JSON.parse(localStorage.getItem('videoBookmarks')) || {},
+            currentPlaylist: [],
+            currentPlaylistIndex: -1,
+            videoPlaybackPosition: JSON.parse(localStorage.getItem('videoPlaybackPosition')) || {},
+            hideControlsTimeout: null,
+            feedbackTimeout: null,
+            isMiniPlayerDragging: false,
+            miniPlayerOffsetX: 0,
+            miniPlayerOffsetY: 0,
+            isAdSkipDragging: false,
+            adSkipStartX: 0,
+        };
 
-    progressBar.addEventListener('click', (e) => {
-        if (isAdPlaying) {
-            showFeedback("광고 중에는 북마크 기능을 사용할 수 없습니다.");
-            return;
-        }
-        if (e.target.classList.contains('chapter-marker')) return;
+        // --- 유틸리티 함수 ---
+        const formatTime = (seconds) => {
+            if (isNaN(seconds) || seconds < 0) return "00:00";
+            const date = new Date(seconds * 1000);
+            const hh = date.getUTCHours();
+            const mm = date.getUTCMinutes();
+            const ss = date.getUTCSeconds().toString().padStart(2, '0');
+            return hh > 0 ? `${hh}:${mm.toString().padStart(2, '0')}:${ss}` : `${mm.toString().padStart(2, '0')}:${ss}`;
+        };
 
-        const rect = progressBar.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const clickPercentage = (clickX / rect.width);
-        const clickTime = clickPercentage * video.duration;
-        let closestBookmarkTime = -1;
-        let minDiff = Infinity;
+        const showFeedback = (message) => {
+            feedbackBox.textContent = message;
+            feedbackBox.classList.add('show');
+            clearTimeout(state.feedbackTimeout);
+            state.feedbackTimeout = setTimeout(() => {
+                feedbackBox.classList.remove('show');
+            }, 1500);
+        };
 
-        for (const timeStr in bookmarks) {
-            const bookmarkTime = parseFloat(timeStr);
-            const diff = Math.abs(bookmarkTime - clickTime);
-            if (diff < minDiff && diff < 5) {
-                minDiff = diff;
-                closestBookmarkTime = bookmarkTime;
-            }
-        }
+        const showLoading = (isLoading) => {
+            spinner.style.display = isLoading ? 'block' : 'none';
+            loadingText.style.display = isLoading ? 'block' : 'none';
+        };
 
-        if (closestBookmarkTime !== -1) {
-            video.currentTime = closestBookmarkTime;
-            showFeedback(`북마크로 이동: ${formatTime(closestBookmarkTime)}`);
-        }
-    });
+        // --- 플레이어 컨트롤 함수 ---
+        const playVideo = () => {
+            video.play().catch(error => {
+                console.warn("자동 재생이 차단되었습니다:", error);
+                updatePlayPauseIcon(true);
+            });
+        };
 
-    volumeControl.addEventListener('input', () => {
-      video.volume = volumeControl.value;
-      showFeedback(`볼륨: ${(video.volume * 100).toFixed(0)}%`);
-    });
-
-    speedControl.addEventListener('change', () => {
-      if (isAdPlaying) {
-        speedControl.value = "1";
-        showFeedback("광고 중에는 재생 속도를 변경할 수 없습니다.");
-      } else {
-        video.playbackRate = speedControl.value;
-        showFeedback(`재생 속도: ${speedControl.value}x`);
-      }
-    });
-
-    aspectRatioBtn.addEventListener('click', () => {
-      if (currentAspectRatio === 'contain') {
-        currentAspectRatio = 'fill';
-        video.style.objectFit = 'fill';
-        showFeedback("화면 비율: 채우기 (Stretch)");
-      } else if (currentAspectRatio === 'fill') {
-        currentAspectRatio = 'cover';
-        video.style.objectFit = 'cover';
-        showFeedback("화면 비율: 꽉 채우기 (Crop)");
-      } else {
-        currentAspectRatio = 'contain';
-        video.style.objectFit = 'contain';
-        showFeedback("화면 비율: 맞춤 (Contain)");
-      }
-    });
-
-    pipBtn.addEventListener('click', async () => {
-      try {
-        if (document.pictureInPictureElement) {
-          await document.exitPictureInPicture();
-        } else {
-          await video.requestPictureInPicture();
-        }
-      } catch {
-        alert('PIP 모드를 지원하지 않는 브라우저입니다.');
-      }
-    });
-
-    miniPlayerBtn.addEventListener('click', () => {
-        playerContainer.classList.toggle('mini-player');
-        if (playerContainer.classList.contains('mini-player')) {
-            miniPlayerBtn.textContent = '⛶ 일반';
-            showFeedback("미니 플레이어 모드");
-            controls.classList.remove('hide');
-            playerContainer.style.cursor = "default";
-            if (hideControlsTimeout) clearTimeout(hideControlsTimeout);
-        } else {
-            miniPlayerBtn.textContent = '🔽 미니';
-            showFeedback("일반 플레이어 모드");
-            if (!video.paused) showControls();
-        }
-    });
-
-    fullscreenBtn.addEventListener('click', () => {
-      if (!document.fullscreenElement) {
-        playerContainer.requestFullscreen();
-      } else {
-        document.exitFullscreen();
-      }
-    });
-
-    bookmarkBtn.addEventListener('click', () => {
-        if (isAdPlaying) {
-            showFeedback("광고 중에는 북마크를 추가할 수 없습니다.");
-            return;
-        }
-        if (video.duration) {
-            const time = Math.floor(video.currentTime);
-            if (!bookmarks[time]) {
-                bookmarks[time] = true;
-                showFeedback(`북마크 추가: ${formatTime(time)}`);
+        const togglePlayPause = () => {
+            video.paused ? playVideo() : video.pause();
+        };
+        
+        const updatePlayPauseIcon = (forcePause = false) => {
+            const paused = video.paused || forcePause;
+            playPauseIcon.className = `fas ${paused ? 'fa-play' : 'fa-pause'}`;
+            const label = paused ? '재생' : '일시정지';
+            controlsPlayPauseBtn.setAttribute('aria-label', label);
+        };
+        
+        const updateVolumeIcon = () => {
+            if (video.muted || video.volume === 0) {
+                volumeIcon.className = 'fas fa-volume-mute';
+            } else if (video.volume < 0.5) {
+                volumeIcon.className = 'fas fa-volume-down';
             } else {
-                delete bookmarks[time];
-                showFeedback(`북마크 삭제: ${formatTime(time)}`);
+                volumeIcon.className = 'fas fa-volume-up';
             }
-            localStorage.setItem('videoBookmarks', JSON.stringify(bookmarks));
-            drawBookmarks();
-        }
-    });
-    
-    function getProgressBarWidth() {
-        return progressBar.getBoundingClientRect().width;
-    }
+        };
 
-    function drawBookmarks() {
-        const progressBarWrapper = progressBar.parentElement;
-        progressBarWrapper.querySelectorAll('.bookmark-dot').forEach(dot => dot.remove());
+        const changeChannel = (channelValue) => {
+            const selectedChannel = channelValue || channelSelect.value;
+            const selectedOption = Array.from(channelSelect.options).find(opt => opt.value === selectedChannel);
+            const selectedChannelName = selectedOption ? selectedOption.text : '';
 
-        if (!video.duration) return;
+            channelSelect.value = selectedChannel;
+            currentChannelNameSpan.textContent = selectedChannelName;
+            
+            showLoading(true);
+            video.pause();
 
-        const progressBarWidth = getProgressBarWidth();
+            state.currentPlaylist = [];
+            state.currentPlaylistIndex = -1;
+            state.isAdPlaying = true;
+            updateAdControls(true);
 
-        for (const timeStr in bookmarks) {
-            const time = parseFloat(timeStr);
-            if (time <= video.duration) {
-                const position = (time / video.duration) * progressBarWidth;
-                const dot = document.createElement('div');
-                dot.classList.add('bookmark-dot');
-                dot.style.left = `${position}px`;
-                progressBarWrapper.appendChild(dot);
+            video.src = config.adVideoSrc;
+            video.load();
+            playVideo();
+            
+            saveRecentChannel(selectedChannelName, selectedChannel);
+            showFeedback(`채널 전환: ${selectedChannelName}`); // 채널 전환 피드백 추가
+        };
+
+        // 채널 인덱스를 통해 채널을 변경하는 함수 추가
+        const changeChannelByIndex = (offset) => {
+            const options = Array.from(channelSelect.options);
+            let currentIndex = options.findIndex(option => option.value === channelSelect.value);
+            let newIndex = currentIndex + offset;
+
+            if (newIndex >= options.length) {
+                newIndex = 0; // 마지막 채널에서 위로 이동하면 첫 채널로
+            } else if (newIndex < 0) {
+                newIndex = options.length - 1; // 첫 채널에서 아래로 이동하면 마지막 채널로
             }
-        }
-    }
+            changeChannel(options[newIndex].value);
+        };
+        
+        const playMainVideo = () => {
+            if (!state.isAdPlaying) return;
 
-    function drawChapters() {
-        const progressBarWrapper = progressBar.parentElement;
-        progressBarWrapper.querySelectorAll('.chapter-marker').forEach(marker => marker.remove());
+            state.isAdPlaying = false;
+            updateAdControls(false);
 
-        if (!video.duration) return;
+            const selectedChannelData = config.channelStreams[channelSelect.value] || {};
+            state.currentPlaylist = selectedChannelData.playlist || [];
+            
+            let nextVideoSrc;
+            if (state.currentPlaylist.length > 0) {
+                state.currentPlaylistIndex = 0;
+                nextVideoSrc = state.currentPlaylist[0].src;
+                showFeedback(`재생 목록 시작: ${state.currentPlaylist[0].title}`);
+            } else {
+                showFeedback("광고가 종료되었습니다.");
+                // 재생 목록이 없는 경우에 대한 대체 비디오가 필요하다면 여기에 추가
+                nextVideoSrc = 'about:blank'; // 예: 빈 페이지
+            }
 
-        const progressBarWidth = getProgressBarWidth();
+            video.src = nextVideoSrc;
+            video.load();
+            playVideo();
+        };
 
-        chapters.forEach(chapter => {
-            if (chapter.time <= video.duration) {
-                const position = (chapter.time / video.duration) * progressBarWidth;
+        const updateAdControls = (isAd) => {
+            progressBar.disabled = isAd;
+            speedSelect.disabled = isAd;
+            chaptersBtn.disabled = isAd;
+            bookmarkBtn.disabled = isAd;
+            skipSlideOverlay.style.opacity = isAd ? '1' : '0'; // Control visibility
+            skipSlideOverlay.style.pointerEvents = isAd ? 'auto' : 'none'; // Control interactivity
+            adTimeDisplay.style.display = isAd ? 'block' : 'none';
+            adNextBtn.style.display = isAd ? 'inline-block' : 'none'; // Added: show/hide adNextBtn
+        };
+
+        // --- UI/마커 렌더링 함수 ---
+        const drawMarkers = () => {
+            // 기존 마커 모두 제거
+            progressBarContainer.querySelectorAll('.bookmark-dot, .chapter-marker').forEach(m => m.remove());
+            if (video.duration <= 0) return;
+
+            // 북마크 그리기
+            const currentBookmarks = state.bookmarks[video.src] || [];
+            currentBookmarks.forEach(time => {
                 const marker = document.createElement('div');
-                marker.classList.add('chapter-marker');
-                marker.style.left = `${position}px`;
-                marker.setAttribute('data-time', chapter.time);
-                marker.setAttribute('data-title', chapter.title);
-                marker.title = `${chapter.title} (${formatTime(chapter.time)})`;
-                progressBarWrapper.appendChild(marker);
+                marker.className = 'bookmark-dot';
+                marker.style.left = `${(time / video.duration) * 100}%`;
+                progressBarContainer.appendChild(marker);
+            });
 
+            // 챕터 그리기
+            config.chapters.forEach(chapter => {
+                const marker = document.createElement('div');
+                marker.className = 'chapter-marker';
+                marker.style.left = `${(chapter.time / video.duration) * 100}%`;
+                marker.innerHTML = `<div class="chapter-tooltip">${chapter.title}</div>`;
                 marker.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    if (!isAdPlaying) {
-                        video.currentTime = chapter.time;
-                        showFeedback(`챕터 이동: ${chapter.title} (${formatTime(chapter.time)})`);
-                    } else {
-                        showFeedback("광고 중에는 챕터 이동을 할 수 없습니다.");
-                    }
+                    if (!state.isAdPlaying) video.currentTime = chapter.time;
+                });
+                progressBarContainer.appendChild(marker);
+            });
+        };
+        
+        const populateChapterList = () => {
+            chapterListUl.innerHTML = '';
+            if (config.chapters.length === 0) {
+                chaptersBtn.style.display = 'none';
+            } else {
+                chaptersBtn.style.display = 'inline-block';
+                config.chapters.forEach(chapter => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<button><span>${formatTime(chapter.time)}</span>${chapter.title}</button>`;
+                    li.querySelector('button').addEventListener('click', () => {
+                        if (!state.isAdPlaying) {
+                            video.currentTime = chapter.time;
+                            chapterListPopup.classList.remove('show');
+                        }
+                    });
+                    chapterListUl.appendChild(li);
                 });
             }
-        });
-    }
+        };
 
-    chaptersBtn.addEventListener('click', (e) => {
-        if (isAdPlaying) {
-            showFeedback("광고 중에는 챕터 목록을 사용할 수 없습니다.");
-            return;
-        }
-        e.stopPropagation();
-        chapterListUl.innerHTML = '';
-        chapters.forEach(chapter => {
-            const li = document.createElement('li');
-            const button = document.createElement('button');
-            button.innerHTML = `<span>${formatTime(chapter.time)}</span>${chapter.title}`;
-            button.addEventListener('click', () => {
-                video.currentTime = chapter.time;
-                showFeedback(`챕터 이동: ${chapter.title} (${formatTime(chapter.time)})`);
-                chapterListPopup.classList.remove('show');
-            });
-            li.appendChild(button);
-            chapterListUl.appendChild(li);
-        });
-        chapterListPopup.classList.toggle('show');
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!chapterListPopup.contains(e.target) && e.target !== chaptersBtn) {
-            chapterListPopup.classList.remove('show');
-        }
-    });
-
-    function updateAdControls(adMode) {
-      isAdPlaying = adMode;
-      adTimeDisplay.style.display = adMode ? 'block' : 'none';
-      skipAdBtn.style.display = adMode ? 'inline-block' : 'none';
-      if(adMode) skipAdBtn.disabled = true;
-
-      speedControl.disabled = adMode;
-      bookmarkBtn.disabled = adMode;
-      chaptersBtn.disabled = adMode;
-      progressBar.disabled = adMode;
-      
-      if(!adMode) speedControl.value = video.playbackRate; // Restore original speed setting
-    }
-
-    function playMainVideo() {
-        if (!isAdPlaying) return;
-        updateAdControls(false);
-        video.src = channelStreams[channelSelect.value] || mainVideoSrc;
-        video.load();
-        video.play().catch(e => console.log("자동재생 실패:", e));
-        showFeedback("광고가 종료되었습니다.");
-    }
-
-    video.addEventListener('ended', () => {
-      if (isAdPlaying) {
-        playMainVideo();
-      } else {
-        overlay.style.display = 'flex';
-        updatePlayPauseIcon();
-      }
-    });
-
-    skipAdBtn.addEventListener('click', playMainVideo);
-
-    function showFeedback(message) {
-      feedbackBox.textContent = message;
-      feedbackBox.style.opacity = '1';
-      setTimeout(() => { feedbackBox.style.opacity = '0'; }, 1500);
-    }
-
-    function showLoading(isLoading) {
-      spinner.style.display = isLoading ? 'block' : 'none';
-      loadingText.style.display = isLoading ? 'block' : 'none';
-    }
-
-    function showControls() {
-        if (playerContainer.classList.contains('mini-player')) return;
-        controls.classList.remove('hide');
-        if (hideControlsTimeout) clearTimeout(hideControlsTimeout);
-        if (!video.paused) {
-            hideControlsTimeout = setTimeout(() => { controls.classList.add('hide'); }, 3000);
-        }
-    }
-    
-    playerContainer.addEventListener('mousemove', showControls);
-    playerContainer.addEventListener('mouseleave', () => {
-        if (hideControlsTimeout) clearTimeout(hideControlsTimeout);
-        if (!video.paused) hideControlsTimeout = setTimeout(() => { controls.classList.add('hide'); }, 500);
-    });
-
-    video.addEventListener('play', updatePlayPauseIcon);
-    video.addEventListener('pause', updatePlayPauseIcon);
-    video.addEventListener('waiting', () => showLoading(true));
-    video.addEventListener('playing', () => showLoading(false));
-    video.addEventListener('canplay', () => showLoading(false));
-
-    video.addEventListener('loadedmetadata', () => {
-        updateTimeDisplay();
-        if (!isAdPlaying) {
-          drawBookmarks();
-          drawChapters();
-        }
-    });
-
-    function changeChannel() {
-        const selectedChannel = channelSelect.value;
-        const selectedChannelName = channelSelect.options[channelSelect.selectedIndex].text;
-        currentChannelNameSpan.textContent = selectedChannelName;
+        // --- 로컬 스토리지 & 데이터 관리 ---
+        const savePlaybackPosition = () => {
+            if (video.src && video.duration > 0 && !video.paused && !state.isAdPlaying) {
+                state.videoPlaybackPosition[video.src] = video.currentTime;
+                localStorage.setItem('videoPlaybackPosition', JSON.stringify(state.videoPlaybackPosition));
+            }
+        };
         
-        showLoading(true);
-        video.pause();
+        const loadPlaybackPosition = () => {
+            const savedTime = state.videoPlaybackPosition[video.src];
+            if (savedTime && savedTime > 0 && savedTime < video.duration) {
+                video.currentTime = savedTime;
+                showFeedback(`이어서 재생: ${formatTime(savedTime)}`);
+            }
+        };
 
-        // 북마크는 채널별로 다를 수 있으므로 리셋 (개선: 채널별로 저장/로드)
-        // localStorage.removeItem('videoBookmarks');
-        // bookmarks = {};
+        const saveBookmarks = () => {
+            localStorage.setItem('videoBookmarks', JSON.stringify(state.bookmarks));
+            drawMarkers();
+        };
+        
+        const saveRecentChannel = (name, value) => {
+            let recent = JSON.parse(localStorage.getItem('recentChannels')) || [];
+            recent = recent.filter(c => c.value !== value);
+            recent.unshift({ name, value, timestamp: Date.now() });
+            localStorage.setItem('recentChannels', JSON.stringify(recent.slice(0, 5)));
+        };
 
-        // NOTE: 데모를 위해 광고부터 다시 시작
-        isAdPlaying = true;
-        updateAdControls(true);
-        video.src = adVideoSrc;
-        video.load();
-        video.play().catch(e => console.log("채널 변경 후 자동재생 실패:", e));
-    }
+        const loadRecentChannels = () => {
+            const recent = JSON.parse(localStorage.getItem('recentChannels')) || [];
+            recentChannelUl.innerHTML = '';
+            if (recent.length === 0) {
+                recentChannelUl.innerHTML = '<li><button disabled style="color:#aaa; cursor:default;">최근 본 채널 없음</button></li>';
+            } else {
+                recent.forEach(c => {
+                    const li = document.createElement('li');
+                    const button = document.createElement('button');
+                    button.textContent = c.name;
+                    button.onclick = () => {
+                        changeChannel(c.value);
+                        recentChannelPopup.classList.remove('show');
+                    };
+                    li.appendChild(button);
+                    recentChannelUl.appendChild(li);
+                });
+            }
+        };
 
-    channelSelect.addEventListener('change', changeChannel);
+        // --- 이벤트 핸들러 ---
+        const handleVideoEvents = () => {
+            video.addEventListener('play', () => {
+                updatePlayPauseIcon();
+                clearTimeout(state.hideControlsTimeout);
+                state.hideControlsTimeout = setTimeout(() => controls.classList.remove('show'), 3000);
+            });
 
-    document.addEventListener('keydown', (e) => {
-        const activeEl = document.activeElement;
-        if (activeEl === searchInput || activeEl.tagName === 'BUTTON' || activeEl.tagName === 'SELECT') return;
+            video.addEventListener('pause', () => {
+                updatePlayPauseIcon();
+                clearTimeout(state.hideControlsTimeout);
+                controls.classList.add('show');
+            });
 
-        switch (e.key) {
-            case ' ':
-                e.preventDefault();
-                togglePlay();
-                break;
-            case 'f':
-                fullscreenBtn.click();
-                break;
+            video.addEventListener('loadedmetadata', () => {
+                durationSpan.textContent = formatTime(video.duration);
+                showLoading(false);
+                drawMarkers();
+                populateChapterList();
+                loadPlaybackPosition();
+            });
 
-            case 'ArrowLeft':
-            case 'ArrowRight':
-                e.preventDefault();
-                if (isAdPlaying) {
-                    showFeedback("광고 중에는 영상 탐색을 할 수 없습니다.");
-                    return;
+            video.addEventListener('timeupdate', () => {
+                if (!state.isDraggingProgress) {
+                    progressBar.value = video.duration ? (video.currentTime / video.duration) * 100 : 0;
                 }
-                const seekTime = e.key === 'ArrowLeft' ? -5 : 5;
-                video.currentTime += seekTime;
-                showFeedback(`${seekTime > 0 ? '+' : ''}${seekTime}초`);
-                updateTimeDisplay();
-                break;
+                currentTimeSpan.textContent = formatTime(video.currentTime);
 
-            case 'ArrowUp':
-            case 'ArrowDown':
-                e.preventDefault();
-                let newVolume = video.volume + (e.key === 'ArrowUp' ? 0.1 : -0.1);
-                newVolume = Math.max(0, Math.min(1, newVolume));
-                video.volume = newVolume;
-                volumeControl.value = newVolume;
-                showFeedback(`볼륨: ${(newVolume * 100).toFixed(0)}%`);
-                break;
+                if (state.isAdPlaying) {
+                    const remaining = video.duration - video.currentTime;
+                    adTimeDisplay.textContent = `광고 ${formatTime(remaining)}초 후 종료`;
+                } else {
+                    savePlaybackPosition();
+                }
+            });
 
-            case 'm':
+            video.addEventListener('ended', () => {
+                if (state.isAdPlaying) {
+                    playMainVideo();
+                } else if (state.currentPlaylist.length > 0 && state.currentPlaylistIndex < state.currentPlaylist.length - 1) {
+                    state.currentPlaylistIndex++;
+                    const nextVideo = state.currentPlaylist[state.currentPlaylistIndex];
+                    video.src = nextVideo.src;
+                    video.load();
+                    playVideo();
+                    showFeedback(`다음 영상: ${nextVideo.title}`);
+                } else {
+                    updatePlayPauseIcon(true);
+                    showFeedback("재생 목록 종료");
+                }
+            });
+
+            video.addEventListener('click', togglePlayPause); // 비디오 화면 클릭 시 재생/일시정지
+        };
+
+        const handleControlEvents = () => {
+            controlsPlayPauseBtn.addEventListener('click', togglePlayPause);
+            
+            progressBar.addEventListener('input', () => {
+                if(state.isAdPlaying) return;
+                const seekTime = (progressBar.value / 100) * video.duration;
+                currentTimeSpan.textContent = formatTime(seekTime); // 즉시 시간 피드백
+            });
+            progressBar.addEventListener('change', () => {
+                if(state.isAdPlaying) return;
+                video.currentTime = (progressBar.value / 100) * video.duration;
+                state.isDraggingProgress = false;
+            });
+            progressBar.addEventListener('mousedown', () => {
+                if(state.isAdPlaying) return;
+                state.isDraggingProgress = true;
+            });
+            progressBar.addEventListener('mouseup', () => {
+                if(state.isAdPlaying) return;
+                state.isDraggingProgress = false;
+            });
+            progressBarContainer.addEventListener('mousemove', (e) => {
+                if (!video.duration) return;
+                const rect = progressBar.getBoundingClientRect();
+                const pos = (e.clientX - rect.left) / rect.width;
+                const time = formatTime(pos * video.duration);
+                progressTooltip.style.left = `${e.clientX - progressBarContainer.getBoundingClientRect().left}px`;
+                progressTooltip.textContent = time;
+                progressTooltip.style.display = 'block';
+            });
+            progressBarContainer.addEventListener('mouseleave', () => {
+                progressTooltip.style.display = 'none';
+            });
+
+            volumeSlider.addEventListener('input', () => {
+                video.muted = false;
+                video.volume = volumeSlider.value;
+                updateVolumeIcon();
+                showFeedback(`볼륨: ${Math.round(video.volume * 100)}%`);
+            });
+            
+            volumeIcon.addEventListener('click', () => {
                 video.muted = !video.muted;
+                volumeSlider.value = video.muted ? 0 : video.volume;
+                updateVolumeIcon();
                 showFeedback(video.muted ? "음소거" : "음소거 해제");
-                break;
-        }
-    });
-    
-    window.addEventListener('resize', () => {
-        if (!isAdPlaying && video.duration > 0) {
-            drawBookmarks();
-            drawChapters();
-        }
-    });
-    
-    playerContainer.addEventListener('fullscreenchange', () => {
-        if (document.fullscreenElement) {
-            fullscreenBtn.textContent = "💻 일반화면";
-        } else {
-            fullscreenBtn.textContent = "⛶ 전체화면";
-        }
-    });
+            });
 
-    updateAdControls(true); // 초기 설정
-    showControls();
-    updatePlayPauseIcon();
-  });
+            speedSelect.addEventListener('change', () => video.playbackRate = parseFloat(speedSelect.value));
+            fitSelect.addEventListener('change', () => video.style.objectFit = fitSelect.value);
+            pipBtn.addEventListener('click', () => video.requestPictureInPicture().catch(e => showFeedback("PIP 모드 실패")));
+            
+            miniPlayerBtn.addEventListener('click', () => {
+                const isMini = playerContainer.classList.toggle('mini-player');
+                miniPlayerActiveWrapper.classList.toggle('mini-player-active-wrapper', isMini); // 새로 추가된 래퍼 제어
+                showFeedback(isMini ? "미니 플레이어" : "일반 플레이어");
+            });
+
+            fullscreenBtn.addEventListener('click', () => {
+                document.fullscreenElement ? document.exitFullscreen() : playerContainer.requestFullscreen();
+            });
+
+            document.addEventListener('fullscreenchange', () => {
+                const isFullscreen = !!document.fullscreenElement;
+                fullscreenIcon.className = `fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`;
+            });
+
+            channelSelect.addEventListener('change', () => changeChannel());
+            
+            bookmarkBtn.addEventListener('click', () => {
+                if(state.isAdPlaying) return;
+                const videoSrc = video.src;
+                if (!state.bookmarks[videoSrc]) state.bookmarks[videoSrc] = [];
+                
+                const currentTime = video.currentTime;
+                const existingIndex = state.bookmarks[videoSrc].findIndex(b => Math.abs(b - currentTime) < 1);
+                
+                if (existingIndex > -1) {
+                    state.bookmarks[videoSrc].splice(existingIndex, 1);
+                    showFeedback(`북마크 제거: ${formatTime(currentTime)}`);
+                } else {
+                    state.bookmarks[videoSrc].push(currentTime);
+                    state.bookmarks[videoSrc].sort((a, b) => a - b);
+                    showFeedback(`북마크 추가: ${formatTime(currentTime)}`);
+                }
+                saveBookmarks();
+            });
+
+            chaptersBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                chapterListPopup.classList.toggle('show');
+            });
+            
+            recentChannelBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                loadRecentChannels();
+                const btnRect = recentChannelBtn.getBoundingClientRect();
+                recentChannelPopup.style.top = `${btnRect.bottom + 5}px`;
+                recentChannelPopup.style.left = `${btnRect.left}px`;
+                recentChannelPopup.classList.toggle('show');
+            });
+            
+            searchBtn.addEventListener('click', () => {
+                const query = searchInput.value.trim();
+                if (query) {
+                    showFeedback(`'${query}' 검색 (미구현)`);
+                    // 실제 검색 로직 구현 위치
+                }
+            });
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') searchBtn.click();
+            });
+
+            adNextBtn.addEventListener('click', () => { // Added: Ad Next Button Click Event
+                if (state.isAdPlaying) {
+                    playMainVideo();
+                    showFeedback("광고 건너뛰기");
+                }
+            });
+        };
+        
+        const handleGlobalEvents = () => {
+            document.addEventListener('click', (e) => {
+                if (!chapterListPopup.contains(e.target) && e.target !== chaptersBtn) {
+                    chapterListPopup.classList.remove('show');
+                }
+                if (!recentChannelPopup.contains(e.target) && e.target !== recentChannelBtn) {
+                    recentChannelPopup.classList.remove('show');
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                // 입력 필드가 포커스된 경우 키보드 이벤트 무시
+                if (e.target.tagName === 'INPUT' || e.ctrlKey || e.altKey || e.metaKey) return;
+
+                const keyMap = {
+                    ' ': () => { e.preventDefault(); togglePlayPause(); },
+                    'k': togglePlayPause,
+                    'ArrowUp': () => { e.preventDefault(); changeChannelByIndex(1); }, // 채널 위로 (다음 채널)
+                    'ArrowDown': () => { e.preventDefault(); changeChannelByIndex(-1); }, // 채널 아래로 (이전 채널)
+                    'm': () => volumeIcon.click(),
+                    'f': () => fullscreenBtn.click(),
+                    'p': () => pipBtn.click()
+                };
+                
+                if(keyMap[e.key]) keyMap[e.key]();
+            });
+
+            playerContainer.addEventListener('mousemove', () => {
+                controls.classList.add('show');
+                clearTimeout(state.hideControlsTimeout);
+                if (!video.paused) {
+                    state.hideControlsTimeout = setTimeout(() => controls.classList.remove('show'), 3000);
+                }
+            });
+            playerContainer.addEventListener('mouseleave', () => {
+                if (!video.paused) {
+                    controls.classList.remove('show');
+                }
+            });
+        };
+        
+        const handleDragEvents = () => {
+            // Mini-player drag
+            const handleMiniPlayerDragStart = (e) => {
+                if (!playerContainer.classList.contains('mini-player')) return;
+                state.isMiniPlayerDragging = true;
+                playerContainer.style.cursor = 'grabbing';
+                const clientX = e.clientX || e.touches[0].clientX;
+                const clientY = e.clientY || e.touches[0].clientY;
+                state.miniPlayerOffsetX = clientX - playerContainer.offsetLeft;
+                state.miniPlayerOffsetY = clientY - playerContainer.offsetTop;
+            };
+
+            const handleMiniPlayerDragMove = (e) => {
+                if (!state.isMiniPlayerDragging) return;
+                e.preventDefault();
+                const clientX = e.clientX || e.touches[0].clientX;
+                const clientY = e.clientY || e.touches[0].clientY;
+                let newX = clientX - state.miniPlayerOffsetX;
+                let newY = clientY - state.miniPlayerOffsetY;
+
+                // 화면 밖으로 나가지 않도록 제한
+                const max_X = window.innerWidth - playerContainer.offsetWidth;
+                const max_Y = window.innerHeight - playerContainer.offsetHeight;
+                newX = Math.max(0, Math.min(newX, max_X));
+                newY = Math.max(0, Math.min(newY, max_Y));
+
+                playerContainer.style.right = 'auto'; // 기존 right 속성 제거
+                playerContainer.style.bottom = 'auto'; // 기존 bottom 속성 제거
+                playerContainer.style.left = `${newX}px`;
+                playerContainer.style.top = `${newY}px`;
+            };
+
+            const handleMiniPlayerDragEnd = () => {
+                if (!state.isMiniPlayerDragging) return;
+                state.isMiniPlayerDragging = false;
+                playerContainer.style.cursor = 'grab';
+            };
+
+            playerContainer.addEventListener('mousedown', handleMiniPlayerDragStart);
+            document.addEventListener('mousemove', handleMiniPlayerDragMove);
+            document.addEventListener('mouseup', handleMiniPlayerDragEnd);
+            playerContainer.addEventListener('touchstart', handleMiniPlayerDragStart, { passive: false });
+            document.addEventListener('touchmove', handleMiniPlayerDragMove, { passive: false });
+            document.addEventListener('touchend', handleMiniPlayerDragEnd);
+
+            // Ad skip slide drag (new implementation)
+            const handleAdSkipDragStart = (e) => {
+                if (!state.isAdPlaying) return;
+                state.isAdSkipDragging = true;
+                skipSlideOverlay.style.cursor = 'grabbing';
+                state.adSkipStartX = (e.clientX || e.touches[0].clientX);
+                skipSlideOverlay.style.transition = 'none'; // Disable transition during drag
+            };
+
+            const handleAdSkipDragMove = (e) => {
+                if (!state.isAdSkipDragging || !state.isAdPlaying) return;
+                e.preventDefault(); // Prevent text selection etc.
+                const currentX = (e.clientX || e.touches[0].clientX);
+                let deltaX = currentX - state.adSkipStartX;
+                
+                // Limit slide to the left (negative delta)
+                deltaX = Math.min(0, deltaX);
+
+                skipSlideOverlay.style.transform = `translate(-100%, -50%) translateX(${deltaX}px)`;
+
+                // Optional: Provide visual feedback based on slide progress
+                if (deltaX < config.slideThreshold) {
+                    skipSlideOverlay.style.backgroundColor = 'rgba(255, 204, 0, 0.5)';
+                    skipSlideOverlay.style.color = '#111';
+                } else {
+                    skipSlideOverlay.style.backgroundColor = 'rgba(255,255,255,0.15)';
+                    skipSlideOverlay.style.color = '#fff';
+                }
+            };
+
+            const handleAdSkipDragEnd = (e) => {
+                if (!state.isAdSkipDragging || !state.isAdPlaying) return;
+                state.isAdSkipDragging = false;
+                skipSlideOverlay.style.cursor = 'grab';
+                skipSlideOverlay.style.transition = 'all 0.1s ease-out'; // Re-enable transition
+
+                const finalX = (e.clientX || e.changedTouches[0].clientX);
+                const deltaX = finalX - state.adSkipStartX;
+
+                if (deltaX <= config.slideThreshold) {
+                    playMainVideo();
+                    showFeedback("광고 건너뛰기");
+                }
+                // Reset position regardless of whether ad was skipped
+                skipSlideOverlay.style.transform = 'translate(-100%, -50%)';
+                skipSlideOverlay.style.backgroundColor = 'rgba(255,255,255,0.15)'; // Reset color
+                skipSlideOverlay.style.color = '#fff'; // Reset text color
+            };
+
+            skipSlideOverlay.addEventListener('mousedown', handleAdSkipDragStart);
+            document.addEventListener('mousemove', handleAdSkipDragMove);
+            document.addEventListener('mouseup', handleAdSkipDragEnd);
+            skipSlideOverlay.addEventListener('touchstart', handleAdSkipDragStart, { passive: false });
+            document.addEventListener('touchmove', handleAdSkipDragMove, { passive: false });
+            document.addEventListener('touchend', handleAdSkipDragEnd);
+        };
+
+        // --- 초기화 실행 ---
+        function init() {
+            handleVideoEvents();
+            handleControlEvents();
+            handleGlobalEvents();
+            handleDragEvents(); // This now includes both mini-player and ad skip drag logic
+
+            updateAdControls(true); // Ensure ad controls are set up initially
+            updatePlayPauseIcon(true);
+            updateVolumeIcon();
+            loadRecentChannels();
+            
+            showLoading(true);
+            video.src = config.adVideoSrc;
+            video.load();
+            playVideo();
+        }
+
+        init();
+    })();
+});
 </script>
 
 </body>
