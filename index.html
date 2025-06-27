@@ -168,6 +168,7 @@ document.getElementById('csvInput').addEventListener('change', function(e) {
 
 /* 👇 광고 URL 배열: WebSocket 신호로 동적 갱신 */
 let adUrls = []; // 광고 URL 대기열
+let adRows = []; // 행 번호 대기열
 
 let currentIndex = 0;
 const wrapper = document.getElementById("videoWrapper");
@@ -222,21 +223,21 @@ document.getElementById("leftBtn").addEventListener("click", slideToPrev);
 document.getElementById("rightBtn").addEventListener("click", slideToNext);
 
 // WebSocket 연결
-const ws = new WebSocket("ws://localhost:5000/ws");
-
+// const ws = new WebSocket("ws://localhost:5000/ws");
+// 
 // 영상이 끝났을 때(또는 다음 영상 버튼을 눌렀을 때) 시청 시간(sec) 전송
-function sendWatchTime(sec) {
-    ws.send(JSON.stringify({type: "watch_time", sec: sec}));
-}
+// function sendWatchTime(sec) {
+//     ws.send(JSON.stringify({type: "watch_time", sec: sec}));
+// }
 
 let videoStartTime = null;
 let lastWatchSec = 0;
 function updateWatchTime(sec) {
     lastWatchSec = sec;
-    document.getElementById("watchTime").textContent = `이번 영상 시청 시간: ${sec}초`;
-    // === 이 부분 추가 ===
+    const row = adRows[getIndex(0)]; // 현재 광고의 행 번호
+    document.getElementById("watchTime").textContent = `${row} 영상 시청 시간: ${sec}초`;
     if (typeof socket !== 'undefined' && socket.connected) {
-        socket.emit("watch_time", { sec: sec });
+        socket.emit("watch_time", { sec: sec, row: row });
     }
 }
 function slideToNext() {
@@ -307,12 +308,13 @@ socket.on('connect', () => {
   console.log('WebSocket 연결됨');
 });
 socket.on('ads_urls', (data) => {
-  if (data.urls && Array.isArray(data.urls) && data.urls.length > 0) {
-    adUrls = data.urls;
+  if (data.ads && Array.isArray(data.ads) && data.ads.length > 0) {
+    adUrls = data.ads.map(ad => ad.AISAC_URL);
+    adRows = data.ads.map(ad => ad['행 번호']);
     currentIndex = 0;
     prepareVideos();
     playCenterVideo();
-    console.log('서버에서 광고 URL 목록 갱신:', adUrls);
+    console.log('서버에서 광고 목록 갱신:', adUrls, adRows);
   }
 });
 

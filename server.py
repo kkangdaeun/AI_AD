@@ -40,13 +40,20 @@ def static_files(path):
 @socketio.on('connect')
 def on_connect():
     print('클라이언트 접속!')
-    socketio.emit('ads_urls', {'urls': AD_URLS})
+    # '행 번호'와 'AISAC_URL'을 쌍으로 보냄
+    ads_info = initial_ads[['행 번호', 'AISAC_URL']].dropna().to_dict(orient='records')
+    socketio.emit('ads_urls', {'ads': ads_info})
 
 @socketio.on('watch_time')
 def on_watch_time(data):
     user_watch_sec = data.get("sec", None)
-    print(f'🕒 시청 시간(sec): {user_watch_sec}')
-    
+    ads_row = data.get("row", None)
+    print(f'🕒 [행 번호 {ads_row}] 시청 시간(sec): {user_watch_sec}')
+
+# 다른데서 쓸려면 밑에 이렇게 선언하면 될듯?
+# from ads_row, user_watch_sec import server
+# 행 번호: ads_row, 시청 시간: user_watch_sec
+
 initial_ads = initial_recommend_ads()
 
 
