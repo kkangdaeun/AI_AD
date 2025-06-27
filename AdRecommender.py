@@ -5,6 +5,10 @@ from sklearn.metrics.pairwise import cosine_similarity
 from collections import Counter
 from typing import Dict, List, Optional
 
+pd.set_option("display.max_columns", None)  # 열 모두 표시
+pd.set_option("display.max_rows", None)     # 행 모두 표시
+pd.set_option("display.max_colwidth", None) # 셀 안 내용 전부 표시
+
 # pivot_rate 및 genre_cols 를 user_clustering 모듈에서 불러와 자동으로 segment_docs 생성
 from user_clustering import pivot_rate, genre_cols
 
@@ -16,6 +20,7 @@ class AdRecommender:
         category_cols: List[str] = ['대업종 분류','중업종 분류','소업종 분류'],
         top_n_genres: int = 5
     ):
+        
         self.ad_df = ad_df.copy().reset_index(drop=True)
         self.title_col = title_col
         self.category_cols = category_cols
@@ -150,24 +155,31 @@ class AdRecommender:
         return (sm / sm.sum()).to_dict()
 
 # ===== 사용 예시 =====
-data_path = './data/advertisement/AISAC 광고소재명별 광고 정보.csv'
+data_path = './data/AISAC 광고소재명별 광고 정보.csv'
 ad_data = pd.read_csv(data_path)
 engine = AdRecommender(ad_data)
 engine.fit()
 
 # 사용자 정보 받아오기
-num_of_queue = 20
-user_segment = '중장년_40-50대_남성'
-props = engine.infer_major_props(user_segment, epsilon=0.2)
-recs = engine.recommend(
-    segment=user_segment,
-    top_k=num_of_queue,
-    candidate_size=len(ad_data),
-    w_title=0.2,
-    w_cat=0.8,
-    major_props=props,
-    max_per_cat=3,
-    top_n_per_cat=5,
-    temperature=1.5
-)
-print(recs[['광고소재명','대업종 분류','중업종 분류','소업종 분류', '광고주명', '광고회사명', '광고제작사', 'score']])
+# num_of_queue = 30
+# user_segment = '중장년_40-50대_남성'
+# props = engine.infer_major_props(user_segment, epsilon=0.2)
+# initial_ads_df = engine.recommend(
+#     segment=user_segment,
+#     top_k=num_of_queue,
+#     candidate_size=len(ad_data),
+#     w_title=0.2,
+#     w_cat=0.8,
+#     major_props=props,
+#     max_per_cat=3,
+#     top_n_per_cat=5,
+#     temperature=1.5
+# )
+
+# print("\n================== 군집 맞춤 광고 ==================")
+
+# 확인용 출력
+# print(initial_ads_df.head(30))
+
+
+

@@ -11,8 +11,9 @@ import scipy.cluster.hierarchy as sch
 
 
 # ===== [1] 데이터 불러오기 & 헤더 병합 =====
-data_path = "./data/user/고정형_TV_실시간__장르별_시청시간_시청기록_연령대별__성별__20250618202618.csv"
-df = pd.read_csv(data_path, encoding='cp949', header=[0,1,2])
+data_path = "./data/고정형_TV_실시간__장르별_시청시간_시청기록_연령대별__성별__20250528163716.csv"
+
+df = pd.read_csv(data_path, encoding='utf-8', header=[0,1,2])
 df.columns = [
     f"{l0}_{l1}_{l2}" if 'Unnamed' not in str(l0) else l2
     for l0,l1,l2 in df.columns
