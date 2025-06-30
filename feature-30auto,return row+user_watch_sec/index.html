@@ -2,172 +2,93 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>광고 슬라이드 + 사용자 선호도</title>
-  <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-      background: black;
-      color: white;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .slider-container {
-      height: 80%;
-      overflow: hidden;
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .arrow-btn-group {
-      position: static; /* absolute → static */
-      display: flex;
-      justify-content: center;
-      gap: 48px;
-      margin: 24px 0 0 0; /* 위쪽 여백 필요시 조정 */
-      z-index: 10;
-    }
-
-    .arrow-btn {
-      position: static; /* 그룹 내에서 static으로 변경 */
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(30,30,30,0.7);
-      color: #fff;
-      font-size: 2rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .arrow-btn.left {
-      left: 40px;
-    }
-    .arrow-btn.right {
-      right: 40px;
-    }
-    .arrow-btn:hover {
-      background: rgba(76,175,80,0.9);
-    }
-
-    .video-wrapper {
-      display: flex;
-      width: 100%;
-      max-width: 900px;
-      height: 100%;
-      transition: transform 0.5s ease-in-out;
-    }
-
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: black;
-      visibility: hidden;
-    }
-
-    .preference-panel {
-      height: 20vh;
-      background: #111;
-      padding: 10px;
-      box-sizing: border-box;
-    }
-
-    .preference-panel h3 {
-      margin: 0 0 6px;
-      font-size: 1rem;
-    }
-
-    .preference-bars {
-      display: flex;
-      height: calc(100% - 30px);
-      align-items: flex-end;
-    }
-
-    .bar span {
-      display: block;
-      padding: 2px 0;
-    }
-    .preference-bars {
-      display: flex;
-      height: 40px;
-      overflow: hidden;
-      border-radius: 6px;
-      font-family: sans-serif;
-      margin-top: 6px;
-    }
-
-    .bar {
-      white-space: nowrap;
-    }
-
-
-
-  </style>
+  <title>방송사 온에어 서비스</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+    <header class="header">
+        <div class="logo">방송사 온에어 서비스</div>
+        <div class="header-right">
+            <div class="clock" id="clock"></div>
+        </div>
+    </header>
+    
+  <main class="main-content">
+    <section class="center-content">
+      <div class="video-player-container">
+        <div class="video-player" id="video-player-wrapper">
+          <!-- 기존 슬라이드용 video-wrapper를 이 안에 넣음 -->
+          <div class="video-header-bar">
+            <span id="header-video-title">LIVE</span>
+          </div>
+          <div id="videoWrapper" class="video-wrapper">
+            <video id="video0" playsinline preload="auto"></video>
+            <video id="video1" playsinline preload="auto"></video>
+            <video id="video2" playsinline preload="auto"></video>
+          </div>
+          <!-- 커스텀 컨트롤 영역 (기본은 숨김 처리) -->
+          <div class="video-controls-container" id="custom-controls" style="display:none;">
+            <!-- 필요시 커스텀 컨트롤 버튼 추가 -->
+          </div>
+        </div>
+      </div>
+      <div class="arrow-btn-group">
+        <button id="leftBtn" class="arrow-btn left">←</button>
+        <button id="rightBtn" class="arrow-btn right">→</button>
+      </div>
+      <div class="tabs-container">
+  <input type="radio" id="tab-radio-playlist" name="tab-radio" checked hidden>
+  <input type="radio" id="tab-radio-user" name="tab-radio" hidden>
+  <input type="radio" id="tab-radio-ad" name="tab-radio" hidden>
 
-<div class="slider-container">
-  <div id="videoWrapper" class="video-wrapper">
-    <video id="video0" muted playsinline preload="auto"></video>
-    <video id="video1" muted playsinline preload="auto"></video>
-    <video id="video2" muted playsinline preload="auto"></video>
+  <div class="tabs">
+    <label class="tab" for="tab-radio-playlist">편성표</label>
+    <label class="tab" for="tab-radio-user">사용자 선호도</label>
+    <label class="tab" for="tab-radio-ad">광고대기열</label>
+  </div>
+  <div class="tab-content">
+    <div class="tab-pane tab-pane-playlist">
+      <!-- 편성표 내용 -->
+      <div class="program-list" id="program-list-content">
+        <h4>편성 프로그램 목록</h4>
+        <div class="program-list-ul-wrapper">
+          <ul id="playlist-ul"></ul>
+        </div>
+        <div class="pagination" id="pagination-controls"></div>
+      </div>
+    </div>
+    <div class="tab-pane tab-pane-user">
+      <h4>사용자 선호도 기반 추천</h4>
+      <p>업종별 광고 시청 비율:</p>
+      <div class="preference-panel">
+        <div id="preferenceBars" class="preference-bars"></div>
+      </div>
+      <div id="watchTime" style="text-align:center; margin:10px 0;"></div>
+      <p style="color:var(--muted); font-size:0.9rem;">위 데이터는 사용자의 시청 기록을 기반으로 합니다.</p>
+    </div>
+    <div class="tab-pane tab-pane-ad">
+      <h4>광고 대기열 정보</h4>
+      <p>현재 준비 중인 광고 목록입니다:</p>
+      <ul>
+        <li>a</li>
+        <li>b</li>
+        <li>c</li>
+      </ul>
+      <p style="color:var(--muted); font-size:0.9rem;">집행 예정 광고 대기열입니다.</p>
+    </div>
   </div>
 </div>
-<div class="arrow-btn-group">
-  <button id="leftBtn" class="arrow-btn left">←</button>
-  <button id="rightBtn" class="arrow-btn right">→</button>
-</div>
 
-
-    <div class="preference-panel">
-    <h3>시청 시간 확인용</h3>
-    <div id="preferenceBars" class="preference-bars"></div>
-  </div>
-  <div id="watchTime" style="color:#fff; text-align:center; margin:10px 0;"></div>
-
-  <input type="file" id="csvInput" accept=".csv" style="margin:20px;"/>
+      <!-- <div class="preference-panel">
+        <h3>시청 시간 확인용</h3>
+        <div id="preferenceBars" class="preference-bars"></div>
+      </div>
+      <div id="watchTime" style="text-align:center; margin:10px 0;"></div> -->
+    </section>
+  </main>
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
-/* 파일 업로드 CSV 처리(사용자 수동) */
-document.getElementById('csvInput').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(event) {
-    const text = event.target.result;
-    const lines = text.split(/\r?\n/).filter(line => line.trim());
-    const headers = lines[0].split(',');
-    const idxSec = headers.indexOf('광고소재초수');
-    const idxUrl = headers.indexOf('AISAC_URL');
-    if (idxSec === -1 || idxUrl === -1) {
-      alert('필요한 열이 없습니다.');
-      return;
-    }
-    const result = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',');
-      if (cols.length < Math.max(idxSec, idxUrl) + 1) continue;
-      result.push({
-        광고소재초수: cols[idxSec],
-        AISAC_URL: cols[idxUrl]
-      });
-    }
-    console.log(result);
-    alert('CSV 로드 완료! 콘솔을 확인하세요.');
-    // 👇 광고 URL 수동 변경(테스트용)
-    // adUrls = result.map(row => row.AISAC_URL);
-    // currentIndex = 0;
-    // prepareVideos();
-    // playCenterVideo();
-  };
-  reader.readAsText(file, 'utf-8');
-});
 
 /* 👇 광고 URL 배열: WebSocket 신호로 동적 갱신 */
 let adUrls = []; // 광고 URL 대기열
@@ -200,6 +121,16 @@ function prepareVideos() {
   wrapper.style.transition = "none";
   wrapper.style.transform = "translateX(-100%)";
 }
+// 1. 토글 함수 참조를 전역으로 선언
+function togglePlayPause(e) {
+  const video = e.currentTarget;
+  if (video.paused) {
+    video.play();
+  } else {
+    video.pause();
+  }
+}
+// 2. playCenterVideo에서 removeEventListener로 먼저 제거 후 addEventListener
 function playCenterVideo() {
   if (!adUrls.length) return;
   const center = videoEls[1];
@@ -208,6 +139,13 @@ function playCenterVideo() {
   center.play();
   videoStartTime = Date.now();
   center.onended = () => slideToNext();
+
+  // 기존 클릭 이벤트 제거 후 다시 등록 (중복 방지)
+  center.removeEventListener("click", togglePlayPause);
+  center.addEventListener("click", togglePlayPause);
+
+  // 마우스 커서 포인터로 변경
+  center.style.cursor = "pointer";
 }
 function rotateVideos(direction) {
   if (direction === "next") {
@@ -225,13 +163,14 @@ let isTransitioning = false;
 document.getElementById("leftBtn").addEventListener("click", slideToPrev);
 document.getElementById("rightBtn").addEventListener("click", slideToNext);
 
-// WebSocket 연결
-// const ws = new WebSocket("ws://localhost:5000/ws");
-// 
-// 영상이 끝났을 때(또는 다음 영상 버튼을 눌렀을 때) 시청 시간(sec) 전송
-// function sendWatchTime(sec) {
-//     ws.send(JSON.stringify({type: "watch_time", sec: sec}));
-// }
+function updateClock() {
+  const now = new Date();
+  const pad = n => n.toString().padStart(2, '0');
+  const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  document.getElementById('clock').textContent = time;
+}
+setInterval(updateClock, 1000);
+updateClock();
 
 let videoStartTime = null;
 let lastWatchSec = 0;
@@ -243,6 +182,8 @@ function updateWatchTime(sec) {
         socket.emit("watch_time", { sec: sec, row: row });
     }
 }
+// 중앙 비디오 클릭 시 재생/일시정지 기능
+
 function slideToNext() {
   if (isTransitioning) return;
   if (videoStartTime) {
@@ -260,6 +201,7 @@ function slideToNext() {
     isTransitioning = false;
   }, 500);
 }
+
 function slideToPrev() {
   if (isTransitioning) return;
   isTransitioning = true;
@@ -365,6 +307,8 @@ samplePreferences.forEach(([cat, val]) => {
   bar.innerHTML = `<span>${cat}</span><span>${val.toFixed(1)}%</span>`;
   barContainer.appendChild(bar);
 });
+
+
 </script>
 
 
